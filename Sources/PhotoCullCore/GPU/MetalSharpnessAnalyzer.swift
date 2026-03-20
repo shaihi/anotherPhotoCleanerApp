@@ -65,8 +65,17 @@ public struct MetalSharpnessAnalyzer: SharpnessAnalyzerProtocol {
         )
         encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadgroupSize)
         encoder.endEncoding()
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            commandBuffer.addCompletedHandler { buffer in
+                if let error = buffer.error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+            commandBuffer.commit()
+        }
 
         // Read back float values and compute variance on CPU
         var floatPixels = [Float](repeating: 0, count: w * h)
