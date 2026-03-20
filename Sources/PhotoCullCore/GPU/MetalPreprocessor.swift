@@ -19,8 +19,16 @@ public struct MetalPreprocessor: ImagePreprocessorProtocol {
     public func preprocess(_ asset: PhotoAsset) async throws -> ProcessedImage {
         let rawData = try await dataLoader(asset)
 
+        let maxSourcePixels = 2048
+
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxSourcePixels
+        ]
+
         guard let source = CGImageSourceCreateWithData(rawData as CFData, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
             throw CPUPreprocessorError.cannotDecodeImage(assetId: asset.id)
         }
 
