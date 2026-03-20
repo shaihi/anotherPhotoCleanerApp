@@ -134,7 +134,7 @@ public enum MetalSharpnessError: Error, Sendable {
 #else
 /// Stub when Metal is not available — delegates to CPUSharpnessAnalyzer.
 public struct MetalSharpnessAnalyzer: SharpnessAnalyzerProtocol {
-    public init(context: MetalContext?) {}
+    public init(context: MetalContext) throws {}
     public func analyzeSharpness(of image: ProcessedImage) async throws -> SharpnessScore {
         try await CPUSharpnessAnalyzer().analyzeSharpness(of: image)
     }
