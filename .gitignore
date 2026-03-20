@@ -1,1 +1,5 @@
 everything-claude-code/
+.build/
+.swiftpm/
+*.o
+*.d
