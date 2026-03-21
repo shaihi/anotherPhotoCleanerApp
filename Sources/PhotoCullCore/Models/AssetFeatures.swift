@@ -8,9 +8,9 @@ public struct AssetFeatures: Sendable, Equatable {
     /// Normalized sharpness score in [0, 1].
     public let sharpnessScore: SharpnessScore
     /// Phase 4: CIAreaAverage-based exposure score in [0, 1]. Nil if not yet scored.
-    public var exposureScore: Double?
+    public let exposureScore: Double?
     /// Phase 4: Vision attention-saliency subject score in [0, 1]. Nil if not yet scored.
-    public var subjectScore: Double?
+    public let subjectScore: Double?
 
     public init(
         assetId: String,
