@@ -108,34 +108,90 @@ public actor ScanPipeline {
                             var validPairs = candidatePairs
                             let exposureScorer = ExposureScorer()
                             let subjectScorer = SubjectScorer()
-                            for asset in neededAssets {
-                                try Task.checkCancellation()
-                                do {
-                                    let processed = try await backend.preprocessor.preprocess(asset)
-                                    let vector = try await backend.featureExtractor.extractFeatures(from: processed)
-                                    let sharpness = try await backend.sharpnessAnalyzer.analyzeSharpness(of: processed)
 
-                                    // Phase 4: score exposure and subject quality; failures are non-fatal.
-                                    var exposureScore: Double? = nil
-                                    var subjectScore: Double? = nil
-                                    if let sv = try? exposureScorer.score(asset: asset, image: processed) {
-                                        exposureScore = sv.value
-                                    }
-                                    if let sv = try? subjectScorer.score(asset: asset, image: processed) {
-                                        subjectScore = sv.value
-                                    }
+                            // Collect scores concurrently with bounded concurrency.
+                            let concurrencyLimit = min(neededAssets.count, 4)
+                            typealias ScoringResult = (id: String, features: AssetFeatures?)
+                            var scoringResults: [ScoringResult] = []
+                            scoringResults.reserveCapacity(neededAssets.count)
 
-                                    similarityFeatures[asset.id] = AssetFeatures(
-                                        assetId: asset.id,
-                                        featureVector: vector,
-                                        sharpnessScore: sharpness,
-                                        exposureScore: exposureScore,
-                                        subjectScore: subjectScore
-                                    )
-                                } catch {
-                                    // Drop all pairs that reference this asset.
+                            try Task.checkCancellation()
+                            await withTaskGroup(of: ScoringResult.self) { group in
+                                var active = 0
+                                var iterator = neededAssets.makeIterator()
+
+                                // Seed initial batch.
+                                while active < concurrencyLimit, let asset = iterator.next() {
+                                    let a = asset
+                                    group.addTask {
+                                        do {
+                                            let processed = try await backend.preprocessor.preprocess(a)
+                                            let vector = try await backend.featureExtractor.extractFeatures(from: processed)
+                                            let sharpness = try await backend.sharpnessAnalyzer.analyzeSharpness(of: processed)
+                                            var exposureScore: Double? = nil
+                                            var subjectScore: Double? = nil
+                                            if let sv = try? exposureScorer.score(asset: a, image: processed) {
+                                                exposureScore = sv.value
+                                            }
+                                            if let sv = try? subjectScorer.score(asset: a, image: processed) {
+                                                subjectScore = sv.value
+                                            }
+                                            let feat = AssetFeatures(
+                                                assetId: a.id,
+                                                featureVector: vector,
+                                                sharpnessScore: sharpness,
+                                                exposureScore: exposureScore,
+                                                subjectScore: subjectScore
+                                            )
+                                            return (id: a.id, features: feat)
+                                        } catch {
+                                            return (id: a.id, features: nil)
+                                        }
+                                    }
+                                    active += 1
+                                }
+
+                                // Drain results and refill.
+                                for await result in group {
+                                    scoringResults.append(result)
+                                    if let asset = iterator.next() {
+                                        let a = asset
+                                        group.addTask {
+                                            do {
+                                                let processed = try await backend.preprocessor.preprocess(a)
+                                                let vector = try await backend.featureExtractor.extractFeatures(from: processed)
+                                                let sharpness = try await backend.sharpnessAnalyzer.analyzeSharpness(of: processed)
+                                                var exposureScore: Double? = nil
+                                                var subjectScore: Double? = nil
+                                                if let sv = try? exposureScorer.score(asset: a, image: processed) {
+                                                    exposureScore = sv.value
+                                                }
+                                                if let sv = try? subjectScorer.score(asset: a, image: processed) {
+                                                    subjectScore = sv.value
+                                                }
+                                                let feat = AssetFeatures(
+                                                    assetId: a.id,
+                                                    featureVector: vector,
+                                                    sharpnessScore: sharpness,
+                                                    exposureScore: exposureScore,
+                                                    subjectScore: subjectScore
+                                                )
+                                                return (id: a.id, features: feat)
+                                            } catch {
+                                                return (id: a.id, features: nil)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Integrate results; drop pairs for failed assets.
+                            for result in scoringResults {
+                                if let feat = result.features {
+                                    similarityFeatures[result.id] = feat
+                                } else {
                                     validPairs = validPairs.filter {
-                                        $0.assetIdA != asset.id && $0.assetIdB != asset.id
+                                        $0.assetIdA != result.id && $0.assetIdB != result.id
                                     }
                                 }
                             }
