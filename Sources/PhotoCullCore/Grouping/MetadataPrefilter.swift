@@ -54,7 +54,9 @@ public struct MetadataPrefilter: Sendable {
                 windowStart += 1
             }
             let windowEnd = min(windowStart + Self.maxClusterSize - 1, timed.count - 1)
-            for j in (i + 1) ... windowEnd {
+            let jStart = i + 1
+            guard jStart <= windowEnd else { continue }
+            for j in jStart ... windowEnd {
                 let other = timed[j]
                 guard other.creationDate!.timeIntervalSince(anchor) <= windowSeconds else { break }
                 let pair = CandidatePair(
