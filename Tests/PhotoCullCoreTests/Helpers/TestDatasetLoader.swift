@@ -42,12 +42,10 @@ enum TestDatasetLoader {
     // MARK: - Synthesize
 
     static func synthesize(category: DatasetCategory) -> (assets: [PhotoAsset], imageDataMap: [String: Data]) {
-        var assets: [PhotoAsset] = []
-        var imageDataMap: [String: Data] = [:]
         let isoFormatter = ISO8601DateFormatter()
-        for da in category.assets {
+        let assets = category.assets.map { da -> PhotoAsset in
             let date = da.creationDate.flatMap { isoFormatter.date(from: $0) }
-            let asset = PhotoAsset(
+            return PhotoAsset(
                 id: da.id,
                 creationDate: date,
                 pixelWidth: da.pixelWidth,
@@ -58,9 +56,10 @@ enum TestDatasetLoader {
                 mediaSubtypes: [],
                 mediaType: .image
             )
-            assets.append(asset)
-            imageDataMap[da.id] = imageData(for: da)
         }
+        let imageDataMap = Dictionary(uniqueKeysWithValues: category.assets.map { da in
+            (da.id, imageData(for: da))
+        })
         return (assets, imageDataMap)
     }
 
