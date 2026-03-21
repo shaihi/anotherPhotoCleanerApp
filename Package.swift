@@ -13,7 +13,15 @@ let package = Package(
         .executableTarget(
             name: "PhotoCullApp",
             dependencies: ["PhotoCullCore"],
-            path: "Sources/PhotoCullApp"
+            path: "Sources/PhotoCullApp",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/PhotoCullApp/Info.plist"
+                ])
+            ]
         ),
         .testTarget(
             name: "PhotoCullCoreTests",
