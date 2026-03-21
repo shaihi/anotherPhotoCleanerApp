@@ -6,13 +6,17 @@ enum TestDatasetLoader {
 
     // MARK: - Decode
 
+    private static var _cachedManifest: DatasetManifest?
+
     static func loadManifest() throws -> DatasetManifest {
+        if let cached = _cachedManifest { return cached }
         guard let url = Bundle.module.url(forResource: "TestDataset/manifest", withExtension: "json") else {
             throw LoaderError.resourceNotFound("TestDataset/manifest.json — ensure Package.swift includes resources: [.copy(\"TestDataset\")]")
         }
         let data = try Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        return try decoder.decode(DatasetManifest.self, from: data)
+        let manifest = try JSONDecoder().decode(DatasetManifest.self, from: data)
+        _cachedManifest = manifest
+        return manifest
     }
 
     static func loadCategory(_ id: String) throws -> DatasetCategory {
