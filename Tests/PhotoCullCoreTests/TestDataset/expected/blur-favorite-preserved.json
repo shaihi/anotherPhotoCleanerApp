@@ -1,0 +1,16 @@
+{
+  "categoryId": "blur-favorite-preserved",
+  "note": "bfp-blurry-fav is isFavorite (Tier 0) → always keeper, regardless of blur detection or sharpness. bfp-sharp is Tier 2 non-keeper but Rule C skips it (keeper sharpness 0.04 < blurKeeperSharpnessMinimum 0.50 → .unclear). Rule A then suppresses because the keeper has lower composite score than the Tier-2 candidate (scoreDelta < 0 → low confidence). Both kept.",
+  "recommendations": [
+    {
+      "assetId": "bfp-blurry-fav",
+      "action": "keep",
+      "mustContainReason": "favorit"
+    },
+    {
+      "assetId": "bfp-sharp",
+      "action": "keep",
+      "mustContainReason": null
+    }
+  ]
+}

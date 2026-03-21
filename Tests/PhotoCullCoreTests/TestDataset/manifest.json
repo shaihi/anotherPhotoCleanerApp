@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "PhotoCull reusable test dataset — Phases 1-4",
+  "description": "PhotoCull reusable test dataset — Phases 1-5",
   "categories": [
     {
       "id": "exact-duplicates",
@@ -346,6 +346,99 @@
       ],
       "nearDuplicatePairs": [["tc-a","tc-b"], ["tc-b","tc-c"]],
       "expectedFile": "expected/transitive-chain.json"
+    },
+    {
+      "id": "blur-vs-sharp",
+      "description": "One clearly blurry photo (sharpness 0.04) paired with a sharp keeper (sharpness 0.88). With enableBlurDetection=true, Rule C bypasses Rule A and culls the blurry photo. Injected sharpness values — no image analysis runs in tests.",
+      "groupingReason": "nearDuplicate",
+      "assets": [
+        {
+          "id": "bvs-sharp",
+          "creationDate": "2024-11-01T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.88, "exposure": 0.72, "subjectQuality": 0.68, "resolution": 1.0 }
+        },
+        {
+          "id": "bvs-blurry",
+          "creationDate": "2024-11-01T10:00:30Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.04, "exposure": 0.70, "subjectQuality": 0.65, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": [["bvs-sharp","bvs-blurry"]],
+      "expectedFile": "expected/blur-vs-sharp.json"
+    },
+    {
+      "id": "blur-favorite-preserved",
+      "description": "Blurry isFavorite photo (sharpness 0.04) paired with a sharp Tier-2 photo. The favorite is Tier 0 and becomes the keeper regardless of blur detection state. Injected sharpness values.",
+      "groupingReason": "nearDuplicate",
+      "assets": [
+        {
+          "id": "bfp-blurry-fav",
+          "creationDate": "2024-11-02T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": true, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.04, "exposure": 0.70, "subjectQuality": 0.65, "resolution": 1.0 }
+        },
+        {
+          "id": "bfp-sharp",
+          "creationDate": "2024-11-02T10:00:30Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.88, "exposure": 0.72, "subjectQuality": 0.68, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": [["bfp-blurry-fav","bfp-sharp"]],
+      "expectedFile": "expected/blur-favorite-preserved.json"
+    },
+    {
+      "id": "blur-both-blurry",
+      "description": "Both photos are blurry (sharpness 0.05 and 0.03). The keeper's sharpness (0.05) is below blurKeeperSharpnessMinimum (0.50), so Rule C emits .unclear. Rule A then suppresses. Both are kept. Injected sharpness values.",
+      "groupingReason": "nearDuplicate",
+      "assets": [
+        {
+          "id": "bbb-blurry-a",
+          "creationDate": "2024-11-03T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.05, "exposure": 0.68, "subjectQuality": 0.62, "resolution": 1.0 }
+        },
+        {
+          "id": "bbb-blurry-b",
+          "creationDate": "2024-11-03T10:00:30Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "solid",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.03, "exposure": 0.65, "subjectQuality": 0.60, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": [["bbb-blurry-a","bbb-blurry-b"]],
+      "expectedFile": "expected/blur-both-blurry.json"
     }
   ]
 }

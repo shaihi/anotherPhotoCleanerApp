@@ -1,0 +1,16 @@
+{
+  "categoryId": "blur-both-blurry",
+  "note": "Both photos are blurry (bbb-blurry-a: 0.05, bbb-blurry-b: 0.03). Keeper sharpness 0.05 < blurKeeperSharpnessMinimum 0.50 → Rule C emits .unclear for candidate. Rule A then applies: composite scores are very similar → confidence below threshold → .keep for both.",
+  "recommendations": [
+    {
+      "assetId": "bbb-blurry-a",
+      "action": "keep",
+      "mustContainReason": null
+    },
+    {
+      "assetId": "bbb-blurry-b",
+      "action": "keep",
+      "mustContainReason": "close"
+    }
+  ]
+}
