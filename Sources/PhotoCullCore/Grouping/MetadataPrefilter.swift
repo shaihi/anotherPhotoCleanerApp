@@ -53,7 +53,9 @@ public struct MetadataPrefilter: Sendable {
             while timed[i].creationDate!.timeIntervalSince(timed[windowStart].creationDate!) > windowSeconds {
                 windowStart += 1
             }
-            let windowEnd = min(windowStart + Self.maxClusterSize - 1, timed.count - 1)
+            // Cap how far ahead this anchor can look: each anchor `i` examines at most
+            // `maxClusterSize` assets beyond itself, keeping per-anchor pair count bounded.
+            let windowEnd = min(i + Self.maxClusterSize, timed.count - 1)
             let jStart = i + 1
             guard jStart <= windowEnd else { continue }
             for j in jStart ... windowEnd {
