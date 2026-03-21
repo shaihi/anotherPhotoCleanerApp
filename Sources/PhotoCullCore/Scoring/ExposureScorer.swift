@@ -9,7 +9,11 @@ import Foundation
 ///
 /// On any failure the scorer returns a neutral 0.5 rather than throwing.
 public struct ExposureScorer: ImageScorerProtocol, Sendable {
-    public init() {}
+    private let ciContext: CIContext
+
+    public init(ciContext: CIContext = CIContext(options: [.useSoftwareRenderer: false])) {
+        self.ciContext = ciContext
+    }
 
     public func score(asset: PhotoAsset, image: ProcessedImage) throws -> SignalValue {
         guard let ciImage = makeCIImage(from: image) else {
@@ -50,7 +54,7 @@ public struct ExposureScorer: ImageScorerProtocol, Sendable {
     private func computeMeanLuminance(from ciImage: CIImage) -> Double {
         // Use CIAreaAverage (single-pixel average of the whole image) to get mean color.
         // CIAreaHistogram is also valid but CIAreaAverage gives us mean luminance more directly.
-        let context = CIContext(options: [.useSoftwareRenderer: false])
+        let context = ciContext
         let extent = ciImage.extent
         guard !extent.isNull, !extent.isInfinite else { return 0.5 }
 
