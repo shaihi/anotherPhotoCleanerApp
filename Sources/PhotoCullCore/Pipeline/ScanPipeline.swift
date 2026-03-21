@@ -106,16 +106,31 @@ public actor ScanPipeline {
 
                             // Extract features; failures are non-fatal.
                             var validPairs = candidatePairs
+                            let exposureScorer = ExposureScorer()
+                            let subjectScorer = SubjectScorer()
                             for asset in neededAssets {
                                 try Task.checkCancellation()
                                 do {
                                     let processed = try await backend.preprocessor.preprocess(asset)
                                     let vector = try await backend.featureExtractor.extractFeatures(from: processed)
                                     let sharpness = try await backend.sharpnessAnalyzer.analyzeSharpness(of: processed)
+
+                                    // Phase 4: score exposure and subject quality; failures are non-fatal.
+                                    var exposureScore: Double? = nil
+                                    var subjectScore: Double? = nil
+                                    if let sv = try? exposureScorer.score(asset: asset, image: processed) {
+                                        exposureScore = sv.value
+                                    }
+                                    if let sv = try? subjectScorer.score(asset: asset, image: processed) {
+                                        subjectScore = sv.value
+                                    }
+
                                     similarityFeatures[asset.id] = AssetFeatures(
                                         assetId: asset.id,
                                         featureVector: vector,
-                                        sharpnessScore: sharpness
+                                        sharpnessScore: sharpness,
+                                        exposureScore: exposureScore,
+                                        subjectScore: subjectScore
                                     )
                                 } catch {
                                     // Drop all pairs that reference this asset.
@@ -168,12 +183,17 @@ public actor ScanPipeline {
                         recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group) }
                         allRecommendations.append(contentsOf: recs)
                     }
-                    let simRanker = SimilarityRanker()
+                    let bestShotRanker = BestShotRanker()
+                    let assetLookup = Dictionary(
+                        uniqueKeysWithValues: assets.map { ($0.id, $0) }
+                    )
                     for group in similarityGroups {
-                        var recs = simRanker.rank(
+                        var recs = bestShotRanker.rank(
                             group: group,
                             features: similarityFeatures,
-                            pairs: similarityPairs
+                            pairs: similarityPairs,
+                            assets: assetLookup,
+                            configuration: configuration
                         )
                         recs = try safetyGuard.validate(recommendations: recs, for: group)
                         recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group) }
