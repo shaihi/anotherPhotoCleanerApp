@@ -1,5 +1,13 @@
 import Foundation
 
+/// Mirrors PHAssetMediaType without importing Photos framework in core library.
+public enum MediaType: String, Sendable, Equatable, Hashable {
+    case image
+    case video
+    case audio
+    case unknown
+}
+
 public struct PhotoAsset: Sendable, Identifiable, Equatable, Hashable {
     public let id: String          // PHAsset.localIdentifier
     public let creationDate: Date?
@@ -9,6 +17,7 @@ public struct PhotoAsset: Sendable, Identifiable, Equatable, Hashable {
     public let isEdited: Bool
     public let burstIdentifier: String?
     public let mediaSubtypes: Set<String>
+    public let mediaType: MediaType
 
     public init(
         id: String,
@@ -18,7 +27,8 @@ public struct PhotoAsset: Sendable, Identifiable, Equatable, Hashable {
         isFavorite: Bool = false,
         isEdited: Bool = false,
         burstIdentifier: String? = nil,
-        mediaSubtypes: Set<String> = []
+        mediaSubtypes: Set<String> = [],
+        mediaType: MediaType = .image
     ) {
         self.id = id
         self.creationDate = creationDate
@@ -28,5 +38,6 @@ public struct PhotoAsset: Sendable, Identifiable, Equatable, Hashable {
         self.isEdited = isEdited
         self.burstIdentifier = burstIdentifier
         self.mediaSubtypes = mediaSubtypes
+        self.mediaType = mediaType
     }
 }
