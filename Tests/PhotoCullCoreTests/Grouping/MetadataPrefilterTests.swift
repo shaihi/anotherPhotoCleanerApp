@@ -118,4 +118,54 @@ final class MetadataPrefilterTests: XCTestCase {
         let pairs = prefilter.candidates(from: [a, b], configuration: config)
         XCTAssertFalse(pairs.isEmpty, "Zero-dimension assets should skip aspect-ratio check")
     }
+
+    // MARK: - Burst group size cap
+
+    func testBurstGroupExceedingMaxSizeProducesCappedPairs() {
+        // Create a burst group of 35 members, which exceeds the default cap of 30.
+        // The prefilter should truncate to 30 members and produce C(30,2) = 435 pairs
+        // rather than C(35,2) = 595 pairs.
+        let now = Date()
+        let capConfig = CullConfiguration(
+            nearDuplicateTimeWindowSeconds: 60.0,
+            similarityThreshold: 0.15,
+            maxBurstGroupSize: 30
+        )
+        let burstMembers: [PhotoAsset] = (0 ..< 35).map { i in
+            PhotoAsset(
+                id: "burst-\(i)",
+                creationDate: now.addingTimeInterval(Double(i)),
+                burstIdentifier: "group-A"
+            )
+        }
+        let pairs = prefilter.candidates(from: burstMembers, configuration: capConfig)
+        let burstPairs = pairs.filter { $0.prefilterReason == .burstId }
+
+        // C(30,2) = 435; all pairs will pass the compatibility check (same media type,
+        // no aspect-ratio data since pixelWidth/Height default to 0).
+        XCTAssertEqual(burstPairs.count, 435,
+                       "A burst group of 35 capped to 30 should produce C(30,2)=435 pairs, got \(burstPairs.count)")
+    }
+
+    func testBurstGroupUnderCapProducesAllPairs() {
+        // A burst group of exactly maxBurstGroupSize members should not be truncated.
+        let now = Date()
+        let capConfig = CullConfiguration(
+            nearDuplicateTimeWindowSeconds: 60.0,
+            similarityThreshold: 0.15,
+            maxBurstGroupSize: 5
+        )
+        let burstMembers: [PhotoAsset] = (0 ..< 5).map { i in
+            PhotoAsset(
+                id: "burst-\(i)",
+                creationDate: now.addingTimeInterval(Double(i)),
+                burstIdentifier: "group-B"
+            )
+        }
+        let pairs = prefilter.candidates(from: burstMembers, configuration: capConfig)
+        let burstPairs = pairs.filter { $0.prefilterReason == .burstId }
+        // C(5,2) = 10
+        XCTAssertEqual(burstPairs.count, 10,
+                       "A burst group of 5 at cap=5 should produce C(5,2)=10 pairs, got \(burstPairs.count)")
+    }
 }

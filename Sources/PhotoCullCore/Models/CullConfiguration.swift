@@ -14,6 +14,11 @@ public struct CullConfiguration: Sendable, Equatable {
     public var burstTimeWindowSeconds: Double
     /// Cosine-distance threshold; pairs below this threshold are confirmed as near-duplicates.
     public var similarityThreshold: Double
+    /// Maximum number of members taken from a single burst group before generating pairs.
+    /// Caps the pair count at C(maxBurstGroupSize, 2) to avoid O(n²) explosion for
+    /// very long bursts (e.g. 50 members → 1,225 pairs without this cap).
+    /// Members are selected by ascending `creationDate` when truncation is needed.
+    public var maxBurstGroupSize: Int
 
     public init(
         enableExactDuplicates: Bool = true,
@@ -22,7 +27,8 @@ public struct CullConfiguration: Sendable, Equatable {
         enableBlurDetection: Bool = false,
         nearDuplicateTimeWindowSeconds: Double = 60.0,
         burstTimeWindowSeconds: Double = 3.0,
-        similarityThreshold: Double = 0.15
+        similarityThreshold: Double = 0.15,
+        maxBurstGroupSize: Int = 30
     ) {
         self.enableExactDuplicates = enableExactDuplicates
         self.enableNearDuplicates = enableNearDuplicates
@@ -31,6 +37,7 @@ public struct CullConfiguration: Sendable, Equatable {
         self.nearDuplicateTimeWindowSeconds = nearDuplicateTimeWindowSeconds
         self.burstTimeWindowSeconds = burstTimeWindowSeconds
         self.similarityThreshold = similarityThreshold
+        self.maxBurstGroupSize = maxBurstGroupSize
     }
 
     public static let `default` = CullConfiguration()

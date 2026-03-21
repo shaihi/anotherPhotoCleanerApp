@@ -34,7 +34,20 @@ public struct MetadataPrefilter: Sendable {
         let burstGroups = Dictionary(grouping: assets.filter { $0.burstIdentifier != nil },
                                      by: { $0.burstIdentifier! })
         for (_, members) in burstGroups where members.count >= 2 {
-            let burstPairs = allPairs(within: members, reason: .burstId)
+            // Cap burst group size to avoid C(n,2) pair explosion for large bursts.
+            // When truncation is needed, keep the first `maxBurstGroupSize` members
+            // sorted by creationDate (nil dates sort last) for a stable, reproducible subset.
+            let cappedMembers: [PhotoAsset]
+            if members.count > configuration.maxBurstGroupSize {
+                cappedMembers = Array(
+                    members.sorted {
+                        ($0.creationDate ?? .distantFuture) < ($1.creationDate ?? .distantFuture)
+                    }.prefix(configuration.maxBurstGroupSize)
+                )
+            } else {
+                cappedMembers = members
+            }
+            let burstPairs = allPairs(within: cappedMembers, reason: .burstId)
             let filtered = burstPairs.filter { isCompatible($0, assetById: assetById) }
             pairs.append(contentsOf: filtered)
             for pair in filtered {
