@@ -20,6 +20,19 @@ public struct CullConfiguration: Sendable, Equatable {
     /// Members are selected by ascending `creationDate` when truncation is needed.
     public var maxBurstGroupSize: Int
 
+    // MARK: - Phase 4 ranking parameters
+
+    /// Minimum confidence required to emit a `.cull` recommendation; lower → `.keep`.
+    public var confidenceThreshold: Double = 0.60
+    /// Weight for the sharpness signal in the composite score.
+    public var sharpnessWeight: Double = 0.40
+    /// Weight for the exposure signal in the composite score.
+    public var exposureWeight: Double = 0.25
+    /// Weight for the subject-quality signal in the composite score.
+    public var subjectWeight: Double = 0.25
+    /// Weight for the resolution signal in the composite score.
+    public var resolutionWeight: Double = 0.10
+
     public init(
         enableExactDuplicates: Bool = true,
         enableNearDuplicates: Bool = false,
