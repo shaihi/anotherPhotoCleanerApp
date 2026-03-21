@@ -1,0 +1,11 @@
+{
+  "categoryId": "transitive-chain",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["tc-a", "tc-b", "tc-c"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "tc-a", "action": "keep", "minimumConfidence": 0.60, "maximumConfidence": null, "mustContainReason": "Kept" },
+    { "assetId": "tc-b", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "tc-c", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "categoryId": "burst",
+  "expectedGroups": [
+    { "reason": "burst", "memberIds": ["burst-1", "burst-2", "burst-3", "burst-4"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "burst-3", "action": "keep", "minimumConfidence": 0.60, "maximumConfidence": null, "mustContainReason": "Kept" },
+    { "assetId": "burst-1", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "burst-2", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "burst-4", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

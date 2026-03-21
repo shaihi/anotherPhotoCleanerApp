@@ -1,0 +1,10 @@
+{
+  "categoryId": "favorites",
+  "expectedGroups": [
+    { "reason": "exactDuplicate", "memberIds": ["fav-favorite", "fav-sharper"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "fav-favorite", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "favor" },
+    { "assetId": "fav-sharper",  "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

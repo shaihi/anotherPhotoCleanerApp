@@ -1,0 +1,10 @@
+{
+  "categoryId": "edited",
+  "expectedGroups": [
+    { "reason": "exactDuplicate", "memberIds": ["edit-edited", "edit-sharper"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "edit-edited",  "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "edit" },
+    { "assetId": "edit-sharper", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

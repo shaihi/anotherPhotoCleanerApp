@@ -1,0 +1,11 @@
+{
+  "categoryId": "near-duplicates",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["nd-best", "nd-mid", "nd-worst"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "nd-best",  "action": "keep", "minimumConfidence": 0.60, "maximumConfidence": null, "mustContainReason": "Kept" },
+    { "assetId": "nd-mid",   "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "nd-worst", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

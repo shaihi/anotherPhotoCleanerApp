@@ -1,0 +1,10 @@
+{
+  "categoryId": "low-confidence-suppression",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["lcs-a", "lcs-b"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "lcs-a", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "Scores too close to recommend deletion." },
+    { "assetId": "lcs-b", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "Scores too close to recommend deletion." }
+  ]
+}

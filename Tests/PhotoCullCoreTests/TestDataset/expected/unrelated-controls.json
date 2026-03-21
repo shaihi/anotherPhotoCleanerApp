@@ -1,0 +1,9 @@
+{
+  "categoryId": "unrelated-controls",
+  "expectedGroups": [],
+  "expectedRecommendations": [
+    { "assetId": "ctrl-a", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "ctrl-b", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "ctrl-c", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}

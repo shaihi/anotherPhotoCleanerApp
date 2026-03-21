@@ -18,7 +18,8 @@ let package = Package(
         .testTarget(
             name: "PhotoCullCoreTests",
             dependencies: ["PhotoCullCore"],
-            path: "Tests/PhotoCullCoreTests"
+            path: "Tests/PhotoCullCoreTests",
+            resources: [.copy("TestDataset")]
         ),
     ]
 )

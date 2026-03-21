@@ -1,0 +1,11 @@
+{
+  "categoryId": "exact-duplicates",
+  "expectedGroups": [
+    { "reason": "exactDuplicate", "memberIds": ["ed-oldest", "ed-newest"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "ed-oldest", "action": "keep", "minimumConfidence": 0.60, "maximumConfidence": null, "mustContainReason": "Kept" },
+    { "assetId": "ed-newest", "action": "cull", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "duplicate" },
+    { "assetId": "ed-different", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null }
+  ]
+}
