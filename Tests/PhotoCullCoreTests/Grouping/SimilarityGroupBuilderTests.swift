@@ -80,6 +80,42 @@ final class SimilarityGroupBuilderTests: XCTestCase {
         XCTAssertEqual(groups[0].reason, .nearDuplicate)
     }
 
+    func testNearDuplicateReasonWhenOnlyOneMemberHasBurstId() {
+        // Mixed case: one member has nil burstIdentifier, the rest share a burst ID.
+        // Regardless of which element happens to be "first" in iteration order,
+        // the group must be classified as .nearDuplicate.
+        let pairs = [
+            confirmedPair(a: "a", b: "b", reason: .timeProximity),
+            confirmedPair(a: "b", b: "c", reason: .burstId),
+        ]
+        let assetMap = [
+            "a": asset(id: "a"),               // no burst ID
+            "b": asset(id: "b", burstId: "burst-1"),
+            "c": asset(id: "c", burstId: "burst-1"),
+        ]
+        let groups = builder.buildGroups(from: pairs, assets: assetMap)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].reason, .nearDuplicate,
+                       "A mixed group (some members lack a burst ID) must be .nearDuplicate")
+    }
+
+    func testBurstReasonRequiresAllMembersToShareBurstId() {
+        // All three members share the same burst ID — must be .burst.
+        let pairs = [
+            confirmedPair(a: "a", b: "b", reason: .burstId),
+            confirmedPair(a: "b", b: "c", reason: .burstId),
+        ]
+        let assetMap = [
+            "a": asset(id: "a", burstId: "burst-1"),
+            "b": asset(id: "b", burstId: "burst-1"),
+            "c": asset(id: "c", burstId: "burst-1"),
+        ]
+        let groups = builder.buildGroups(from: pairs, assets: assetMap)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].reason, .burst,
+                       "All members sharing the same burst ID must produce a .burst group")
+    }
+
     // MARK: - Edge cases
 
     func testEmptyPairsProducesNoGroups() {

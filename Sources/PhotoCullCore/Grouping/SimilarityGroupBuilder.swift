@@ -39,13 +39,19 @@ public struct SimilarityGroupBuilder: Sendable {
 
     // MARK: - Private helpers
 
-    /// Returns `.burst` if all members share the same non-nil `burstIdentifier`,
+    /// Returns `.burst` if every member has the same non-nil `burstIdentifier`,
     /// otherwise `.nearDuplicate`.
+    ///
+    /// Iterates all members rather than relying on `members.first` so that the
+    /// result is independent of the order in which Union-Find returns components
+    /// (hash-map iteration order is unspecified).
     private func groupingReason(for members: [PhotoAsset]) -> GroupingReason {
-        guard let burstId = members.first?.burstIdentifier else {
+        let burstIds = members.compactMap(\.burstIdentifier)
+        guard let firstBurstId = burstIds.first,
+              burstIds.count == members.count,          // every member has a burst ID
+              burstIds.allSatisfy({ $0 == firstBurstId }) else {
             return .nearDuplicate
         }
-        let allShareBurst = members.allSatisfy { $0.burstIdentifier == burstId }
-        return allShareBurst ? .burst : .nearDuplicate
+        return .burst
     }
 }
