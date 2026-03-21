@@ -11,6 +11,7 @@ import Foundation
 /// **Confidence derivation**
 /// Confidence values are derived from the group's pair distances so they reflect
 /// actual similarity strength rather than being hard-coded constants.
+@available(*, deprecated, message: "Use BestShotRanker for within-group ranking.")
 public struct SimilarityRanker: Sendable {
     public init() {}
 
