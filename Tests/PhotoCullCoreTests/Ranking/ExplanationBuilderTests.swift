@@ -46,4 +46,31 @@ final class ExplanationBuilderTests: XCTestCase {
         XCTAssertEqual(explained.action, .keep)
         XCTAssertEqual(explained.asset, group.members[0])
     }
+
+    // MARK: - Real keeper delta values in cull explanation
+
+    func testCullExplanationUsesRealKeeperDeltaNotApproximation() throws {
+        let a = PhotoAsset(id: "a")
+        let b = PhotoAsset(id: "b")
+        let group = try CullGroup(reason: .nearDuplicate, members: [a, b])
+
+        // Keeper breakdown: sharpness = 0.90
+        let keeperBreakdown: [String: Double] = ["sharpness": 0.90]
+        // Cull candidate breakdown: sharpness = 0.30 → real delta = 0.60
+        let cullBreakdown: [String: Double] = ["sharpness": 0.30]
+
+        let cullRec = CullRecommendation(
+            asset: b,
+            action: .cull,
+            reasons: [],
+            confidence: 0.85,
+            signalBreakdown: cullBreakdown
+        )
+        let explained = builder.explain(recommendation: cullRec, in: group, keeperBreakdown: keeperBreakdown)
+        let text = explained.reasons.joined()
+        // Should report real candidate value (0.30) and real keeper value (0.90), not approximation (0.30 + 0.2 = 0.50)
+        XCTAssertTrue(text.contains("0.30"), "Cull explanation must contain real candidate value 0.30; got: \(text)")
+        XCTAssertTrue(text.contains("0.90"), "Cull explanation must contain real keeper value 0.90; got: \(text)")
+        XCTAssertFalse(text.contains("0.50"), "Cull explanation must not use approximated keeper value 0.50; got: \(text)")
+    }
 }

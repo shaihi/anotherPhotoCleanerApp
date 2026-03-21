@@ -5,7 +5,17 @@ public struct ExplanationBuilder: Sendable {
 
     /// Attaches human-readable reasons to a recommendation.
     public func explain(recommendation: CullRecommendation, in group: CullGroup) -> CullRecommendation {
-        let reasons = buildReasons(for: recommendation, in: group)
+        explain(recommendation: recommendation, in: group, keeperBreakdown: nil)
+    }
+
+    /// Attaches human-readable reasons to a recommendation.
+    /// Pass the keeper's `signalBreakdown` for accurate delta values in cull explanations.
+    public func explain(
+        recommendation: CullRecommendation,
+        in group: CullGroup,
+        keeperBreakdown: [String: Double]?
+    ) -> CullRecommendation {
+        let reasons = buildReasons(for: recommendation, in: group, keeperBreakdown: keeperBreakdown)
         return CullRecommendation(
             asset: recommendation.asset,
             action: recommendation.action,
@@ -15,14 +25,18 @@ public struct ExplanationBuilder: Sendable {
         )
     }
 
-    private func buildReasons(for recommendation: CullRecommendation, in group: CullGroup) -> [String] {
+    private func buildReasons(
+        for recommendation: CullRecommendation,
+        in group: CullGroup,
+        keeperBreakdown: [String: Double]? = nil
+    ) -> [String] {
         switch group.reason {
         case .exactDuplicate:
             return buildExactDuplicateReasons(for: recommendation, in: group)
         case .nearDuplicate:
-            return buildNearDuplicateReasons(for: recommendation, in: group)
+            return buildNearDuplicateReasons(for: recommendation, in: group, keeperBreakdown: keeperBreakdown)
         case .burst:
-            return buildBurstReasons(for: recommendation, in: group)
+            return buildBurstReasons(for: recommendation, in: group, keeperBreakdown: keeperBreakdown)
         }
     }
 
@@ -57,7 +71,9 @@ public struct ExplanationBuilder: Sendable {
     }
 
     private func buildNearDuplicateReasons(
-        for recommendation: CullRecommendation, in group: CullGroup
+        for recommendation: CullRecommendation,
+        in group: CullGroup,
+        keeperBreakdown: [String: Double]?
     ) -> [String] {
         let asset = recommendation.asset
         let groupSize = group.members.count
@@ -67,6 +83,7 @@ public struct ExplanationBuilder: Sendable {
             return buildSignalReasons(
                 for: recommendation,
                 breakdown: breakdown,
+                keeperBreakdown: keeperBreakdown,
                 groupSize: groupSize,
                 groupType: "near-duplicate"
             )
@@ -85,7 +102,9 @@ public struct ExplanationBuilder: Sendable {
     }
 
     private func buildBurstReasons(
-        for recommendation: CullRecommendation, in group: CullGroup
+        for recommendation: CullRecommendation,
+        in group: CullGroup,
+        keeperBreakdown: [String: Double]?
     ) -> [String] {
         let groupSize = group.members.count
 
@@ -94,6 +113,7 @@ public struct ExplanationBuilder: Sendable {
             return buildSignalReasons(
                 for: recommendation,
                 breakdown: breakdown,
+                keeperBreakdown: keeperBreakdown,
                 groupSize: groupSize,
                 groupType: "burst"
             )
@@ -112,6 +132,7 @@ public struct ExplanationBuilder: Sendable {
     private func buildSignalReasons(
         for recommendation: CullRecommendation,
         breakdown: [String: Double],
+        keeperBreakdown: [String: Double]?,
         groupSize: Int,
         groupType: String
     ) -> [String] {
@@ -126,7 +147,7 @@ public struct ExplanationBuilder: Sendable {
             let formatted = formatValue(top.value)
             return ["Kept: \(top.name) (\(formatted)) — best in group of \(groupSize) \(groupType) photos."]
         case .cull:
-            let topDelta = topDeltaSignal(in: breakdown)
+            let topDelta = topDeltaSignal(in: breakdown, keeperBreakdown: keeperBreakdown)
             let formatted = formatValue(topDelta.value)
             return ["Suggested for removal: lower \(topDelta.name) (\(formatted) vs \(formatValue(topDelta.keeperValue)))."]
         }
@@ -139,13 +160,33 @@ public struct ExplanationBuilder: Sendable {
     }
 
     /// Returns the signal with the largest difference between this asset and the keeper.
-    /// Since we don't have keeper breakdown here, we use the signal with the lowest value
-    /// (most room for improvement) as a proxy for the top-delta signal.
-    private func topDeltaSignal(in breakdown: [String: Double]) -> (name: String, value: Double, keeperValue: Double) {
+    /// When `keeperBreakdown` is provided, uses real keeper values; otherwise falls back
+    /// to the signal with the lowest value as a proxy.
+    private func topDeltaSignal(
+        in breakdown: [String: Double],
+        keeperBreakdown: [String: Double]?
+    ) -> (name: String, value: Double, keeperValue: Double) {
+        if let keeperBreakdown, !keeperBreakdown.isEmpty {
+            // Find the shared signal key with the largest positive delta (keeperValue - candidateValue).
+            var bestKey: String? = nil
+            var bestDelta = -Double.infinity
+            for (key, candidateValue) in breakdown {
+                if let keeperValue = keeperBreakdown[key] {
+                    let delta = keeperValue - candidateValue
+                    if delta > bestDelta {
+                        bestDelta = delta
+                        bestKey = key
+                    }
+                }
+            }
+            if let key = bestKey, let candidateValue = breakdown[key], let keeperValue = keeperBreakdown[key] {
+                return (name: key, value: candidateValue, keeperValue: keeperValue)
+            }
+        }
+        // Fallback: no keeper breakdown available — use the signal with the lowest value.
         guard let entry = breakdown.min(by: { $0.value < $1.value }) else {
             return (name: "quality", value: 0.0, keeperValue: 1.0)
         }
-        // keeperValue approximated as 1.0 − score (inverse distance) for display.
         let approxKeeperValue = min(1.0, entry.value + 0.2)
         return (name: entry.key, value: entry.value, keeperValue: approxKeeperValue)
     }

@@ -196,7 +196,8 @@ public actor ScanPipeline {
                             configuration: configuration
                         )
                         recs = try safetyGuard.validate(recommendations: recs, for: group)
-                        recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group) }
+                        let keeperBreakdown = recs.first(where: { $0.action == .keep })?.signalBreakdown
+                        recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group, keeperBreakdown: keeperBreakdown) }
                         allRecommendations.append(contentsOf: recs)
                     }
 
