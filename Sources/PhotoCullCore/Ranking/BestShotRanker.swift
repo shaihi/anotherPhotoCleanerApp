@@ -121,7 +121,7 @@ public struct BestShotRanker: Sendable {
                         asset: asset,
                         action: .keep,
                         reasons: ["Insufficient quality data to recommend deletion."],
-                        confidence: cullConfidence,
+                        confidence: keeperConfidence,
                         signalBreakdown: assetBreakdown
                     ))
                     continue

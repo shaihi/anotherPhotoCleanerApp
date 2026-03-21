@@ -144,6 +144,37 @@ final class BestShotRankerTests: XCTestCase {
                        "Both members should be kept when cull is suppressed by Rule B")
     }
 
+    // MARK: - Rule B suppressed keep carries keeper confidence (not cullConfidence)
+
+    func testRuleBSuppressedKeepCarriesKeeperConfidence() throws {
+        let a = asset(id: "a")
+        let b = asset(id: "b")
+        let members = [a, b]
+        let group = try makeGroup(members: members)
+        let features: [String: AssetFeatures] = [
+            "a": fullFeatures(assetId: "a", sharpness: 0.9, exposure: 0.9, subject: 0.9),
+            "b": partialFeatures(assetId: "b", sharpness: 0.1) // nil exposure and subject → Rule B
+        ]
+        let recs = ranker.rank(
+            group: group, features: features, pairs: [],
+            assets: assetMap(members), configuration: makeConfig()
+        )
+        let keeperRec = recs.first(where: { $0.asset.id == "a" && $0.action == .keep })
+        let suppressedRec = recs.first(where: { $0.asset.id == "b" && $0.action == .keep })
+        XCTAssertNotNil(keeperRec, "Asset 'a' must be kept")
+        XCTAssertNotNil(suppressedRec, "Asset 'b' must be kept (Rule B suppression)")
+        // Rule B suppressed keep must carry keeperConfidence, not cullConfidence (similarity * 0.9)
+        let keeperConf = keeperRec!.confidence
+        let suppressedConf = suppressedRec!.confidence
+        XCTAssertEqual(suppressedConf, keeperConf, accuracy: 0.001,
+                       "Rule-B suppressed keep confidence must equal keeper confidence")
+        // Verify it is strictly greater than cullConfidence (similarity * 0.9)
+        // baseSimilarityConfidence with no pairs = (1.0 - 0.1).clamped → 0.9; cullConfidence = 0.9 * 0.9 = 0.81
+        let expectedCullConfidence = (0.9 * 0.9)  // 0.81
+        XCTAssertGreaterThan(suppressedConf, expectedCullConfidence,
+                             "Suppressed keep confidence must exceed cull-derived confidence")
+    }
+
     // MARK: - Low confidence → cull suppressed (Rule A)
 
     func testLowConfidenceSuppressesCull() throws {
