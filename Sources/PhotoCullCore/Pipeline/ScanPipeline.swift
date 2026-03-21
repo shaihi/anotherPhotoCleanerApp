@@ -8,6 +8,7 @@ public actor ScanPipeline {
     private let safetyGuard: SafetyGuard
     private let explanationBuilder: ExplanationBuilder
     private let configuration: CullConfiguration
+    private let analysisBackend: AnalysisBackendBundle?
 
     public init(
         libraryService: some PhotoLibraryServiceProtocol,
@@ -16,7 +17,8 @@ public actor ScanPipeline {
         ranker: ExactDuplicateRanker = ExactDuplicateRanker(),
         safetyGuard: SafetyGuard = SafetyGuard(),
         explanationBuilder: ExplanationBuilder = ExplanationBuilder(),
-        configuration: CullConfiguration = .default
+        configuration: CullConfiguration = .default,
+        analysisBackend: AnalysisBackendBundle? = nil
     ) {
         self.libraryService = libraryService
         self.hasher = hasher
@@ -25,6 +27,7 @@ public actor ScanPipeline {
         self.safetyGuard = safetyGuard
         self.explanationBuilder = explanationBuilder
         self.configuration = configuration
+        self.analysisBackend = analysisBackend
     }
 
     public func scan() -> AsyncThrowingStream<ScanEvent, Error> {
@@ -57,31 +60,128 @@ public actor ScanPipeline {
                         )))
                     }
 
-                    // 3. Group duplicates
+                    // 3. Group exact duplicates
                     continuation.yield(.progress(ScanProgress(
                         phase: .grouping, processed: total, total: total, message: "Grouping duplicates..."
                     )))
-                    let groups: [CullGroup]
+                    let exactGroups: [CullGroup]
                     if configuration.enableExactDuplicates {
-                        groups = groupBuilder.buildGroups(from: hashResults)
+                        exactGroups = groupBuilder.buildGroups(from: hashResults)
                     } else {
-                        groups = []
+                        exactGroups = []
                     }
 
-                    // 4. Rank + SafetyGuard + Explain
+                    // 4. Near-duplicate / burst grouping (Phase 3)
+                    let similarityGroups: [CullGroup]
+                    var similarityFeatures: [String: AssetFeatures] = [:]
+                    var similarityPairs: [CandidatePair] = []
+
+                    if configuration.enableNearDuplicates || configuration.enableBurstGrouping,
+                       let backend = analysisBackend {
+                        // Assets already in exact-duplicate groups are excluded.
+                        let exactGroupedIds = Set(exactGroups.flatMap { $0.members.map(\.id) })
+                        let candidateAssets = assets.filter { !exactGroupedIds.contains($0.id) }
+
+                        // CPU metadata prefilter
+                        let prefilter = MetadataPrefilter()
+                        let candidatePairs = prefilter.candidates(
+                            from: candidateAssets, configuration: configuration
+                        )
+
+                        if !candidatePairs.isEmpty {
+                            // Collect unique asset IDs referenced by candidate pairs.
+                            var neededIds: Set<String> = []
+                            for pair in candidatePairs {
+                                neededIds.insert(pair.assetIdA)
+                                neededIds.insert(pair.assetIdB)
+                            }
+                            let neededAssets = candidateAssets.filter { neededIds.contains($0.id) }
+
+                            continuation.yield(.progress(ScanProgress(
+                                phase: .grouping,
+                                processed: exactGroups.count,
+                                total: exactGroups.count + neededAssets.count,
+                                message: "Extracting features for \(neededAssets.count) asset(s)..."
+                            )))
+
+                            // Extract features; failures are non-fatal.
+                            var validPairs = candidatePairs
+                            for asset in neededAssets {
+                                try Task.checkCancellation()
+                                do {
+                                    let processed = try await backend.preprocessor.preprocess(asset)
+                                    let vector = try await backend.featureExtractor.extractFeatures(from: processed)
+                                    let sharpness = try await backend.sharpnessAnalyzer.analyzeSharpness(of: processed)
+                                    similarityFeatures[asset.id] = AssetFeatures(
+                                        assetId: asset.id,
+                                        featureVector: vector,
+                                        sharpnessScore: sharpness
+                                    )
+                                } catch {
+                                    // Drop all pairs that reference this asset.
+                                    validPairs = validPairs.filter {
+                                        $0.assetIdA != asset.id && $0.assetIdB != asset.id
+                                    }
+                                }
+                            }
+
+                            // Score and confirm pairs.
+                            let scorer = SimilarityScorer()
+                            let confirmed = scorer.confirmPairs(
+                                validPairs,
+                                features: similarityFeatures,
+                                threshold: configuration.similarityThreshold
+                            )
+                            similarityPairs = confirmed
+
+                            // Build groups.
+                            let assetMap = Dictionary(uniqueKeysWithValues: candidateAssets.map { ($0.id, $0) })
+                            let builder = SimilarityGroupBuilder()
+                            var allSimGroups = builder.buildGroups(from: confirmed, assets: assetMap)
+
+                            // Filter by enabled flags.
+                            if configuration.enableBurstGrouping && !configuration.enableNearDuplicates {
+                                allSimGroups = allSimGroups.filter { $0.reason == .burst }
+                            } else if configuration.enableNearDuplicates && !configuration.enableBurstGrouping {
+                                allSimGroups = allSimGroups.filter { $0.reason == .nearDuplicate }
+                            }
+
+                            similarityGroups = allSimGroups
+                        } else {
+                            similarityGroups = []
+                        }
+                    } else {
+                        similarityGroups = []
+                    }
+
+                    let allGroups = exactGroups + similarityGroups
+
+                    // 5. Rank + SafetyGuard + Explain
                     continuation.yield(.progress(ScanProgress(
-                        phase: .ranking, processed: 0, total: groups.count, message: "Ranking \(groups.count) group(s)..."
+                        phase: .ranking, processed: 0, total: allGroups.count,
+                        message: "Ranking \(allGroups.count) group(s)..."
                     )))
                     var allRecommendations: [CullRecommendation] = []
-                    for group in groups {
+                    for group in exactGroups {
                         var recs = ranker.rank(group: group)
+                        recs = try safetyGuard.validate(recommendations: recs, for: group)
+                        recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group) }
+                        allRecommendations.append(contentsOf: recs)
+                    }
+                    let simRanker = SimilarityRanker()
+                    for group in similarityGroups {
+                        var recs = simRanker.rank(
+                            group: group,
+                            features: similarityFeatures,
+                            pairs: similarityPairs
+                        )
                         recs = try safetyGuard.validate(recommendations: recs, for: group)
                         recs = recs.map { explanationBuilder.explain(recommendation: $0, in: group) }
                         allRecommendations.append(contentsOf: recs)
                     }
 
                     let result = ScanResult(
-                        groups: groups,
+                        groups: allGroups,
                         recommendations: allRecommendations,
                         totalScanned: total,
                         scanDate: Date()
@@ -91,7 +191,7 @@ public actor ScanPipeline {
                         phase: .complete,
                         processed: total,
                         total: total,
-                        message: "Found \(groups.count) duplicate group(s) among \(total) photo(s)."
+                        message: "Found \(allGroups.count) group(s) among \(total) photo(s)."
                     )))
                     continuation.yield(.completed(result))
                     continuation.finish()
