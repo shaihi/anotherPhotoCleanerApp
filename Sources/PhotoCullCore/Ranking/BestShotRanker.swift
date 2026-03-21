@@ -23,6 +23,7 @@ public struct BestShotRanker: Sendable {
     private let compositeScorer = CompositeScorer()
     private let resolutionScorer = ResolutionScorer()
     private let confidenceCalculator = ConfidenceCalculator()
+    private let blurClassifier = BlurClassifier()
 
     public init() {}
 
@@ -125,6 +126,30 @@ public struct BestShotRanker: Sendable {
                         signalBreakdown: assetBreakdown
                     ))
                     continue
+                }
+
+                // Rule C: accidental blur suppression (gated by enableBlurDetection).
+                // Bypasses Rule A confidence suppression only — does not affect Rule B,
+                // preservation tiers, or SafetyGuard (which runs after rank() returns).
+                if configuration.enableBlurDetection {
+                    let candidateSharpness = features[asset.id]?.sharpnessScore.value ?? 0.0
+                    let keeperSharpness = features[keeper.id]?.sharpnessScore.value ?? 0.0
+                    let blurResult = blurClassifier.classify(
+                        candidateSharpness: candidateSharpness,
+                        keeperSharpness: keeperSharpness,
+                        asset: asset,
+                        configuration: configuration
+                    )
+                    if blurResult == .accidental {
+                        results.append(CullRecommendation(
+                            asset: asset,
+                            action: .cull,
+                            reasons: ["Suggested for removal: likely accidental blur (sharpness \(String(format: "%.2f", candidateSharpness)) vs keeper \(String(format: "%.2f", keeperSharpness)))."],
+                            confidence: cullConfidence,
+                            signalBreakdown: assetBreakdown
+                        ))
+                        continue
+                    }
                 }
 
                 // Rule A: confidence suppression
