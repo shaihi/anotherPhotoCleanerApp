@@ -24,6 +24,9 @@ public struct MetadataPrefilter: Sendable {
     ) -> [CandidatePair] {
         guard assets.count >= 2 else { return [] }
 
+        // Build a dictionary once for O(1) asset lookup by ID, used throughout both passes.
+        let assetById: [String: PhotoAsset] = Dictionary(uniqueKeysWithValues: assets.map { ($0.id, $0) })
+
         var pairs: [CandidatePair] = []
         var assetIdsInBurstPairs: Set<String> = []
 
@@ -32,7 +35,7 @@ public struct MetadataPrefilter: Sendable {
                                      by: { $0.burstIdentifier! })
         for (_, members) in burstGroups where members.count >= 2 {
             let burstPairs = allPairs(within: members, reason: .burstId)
-            let filtered = burstPairs.filter { isCompatible($0, assets: assets) }
+            let filtered = burstPairs.filter { isCompatible($0, assetById: assetById) }
             pairs.append(contentsOf: filtered)
             for pair in filtered {
                 assetIdsInBurstPairs.insert(pair.assetIdA)
@@ -66,7 +69,7 @@ public struct MetadataPrefilter: Sendable {
                     assetIdB: other.id,
                     prefilterReason: .timeProximity
                 )
-                if isCompatible(pair, assets: assets) {
+                if isCompatible(pair, assetById: assetById) {
                     pairs.append(pair)
                 }
             }
@@ -93,9 +96,10 @@ public struct MetadataPrefilter: Sendable {
     }
 
     /// Returns `true` if the pair passes the cross-media-type and aspect-ratio filters.
-    private func isCompatible(_ pair: CandidatePair, assets: [PhotoAsset]) -> Bool {
-        guard let a = assets.first(where: { $0.id == pair.assetIdA }),
-              let b = assets.first(where: { $0.id == pair.assetIdB }) else {
+    /// Accepts a pre-built `[String: PhotoAsset]` dictionary for O(1) lookup.
+    private func isCompatible(_ pair: CandidatePair, assetById: [String: PhotoAsset]) -> Bool {
+        guard let a = assetById[pair.assetIdA],
+              let b = assetById[pair.assetIdB] else {
             return false
         }
         // Reject cross-media-type pairs (e.g. photo vs video).
