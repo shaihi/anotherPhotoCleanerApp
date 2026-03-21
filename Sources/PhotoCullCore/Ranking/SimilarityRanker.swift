@@ -60,9 +60,17 @@ public struct SimilarityRanker: Sendable {
         let keeperSharpness = features[sorted[0].id]?.sharpnessScore.value ?? 0
         let nextBestSharpness = sorted.count > 1 ? (features[sorted[1].id]?.sharpnessScore.value ?? 0) : keeperSharpness
         let sharpnessDelta = max(0, keeperSharpness - nextBestSharpness)
+        // The 0.8 floor ensures that even groups with zero sharpness separation still
+        // produce a meaningful confidence boost for the keeper. Without a floor, equal-
+        // sharpness groups would produce keeperConfidence == baseSimilarityConfidence * 0.0,
+        // which would incorrectly suggest the recommendation is unreliable.
+        // At zero delta the bonus is 0.8; at sharpnessDelta >= 0.04 it reaches 1.0.
         let rankSeparationBonus = min(1.0, sharpnessDelta / 0.2 + 0.8)
 
         let keeperConfidence = (baseSimilarityConfidence * rankSeparationBonus).clamped(to: 0.5...0.95)
+        // Culled members receive a 10% confidence discount relative to the base similarity
+        // confidence. The group membership is confident (high similarity), but the ranking
+        // within the group carries slightly less certainty than the decision to form the group.
         let cullConfidence = (baseSimilarityConfidence * 0.9).clamped(to: 0.5...0.95)
 
         return sorted.enumerated().map { index, asset in
