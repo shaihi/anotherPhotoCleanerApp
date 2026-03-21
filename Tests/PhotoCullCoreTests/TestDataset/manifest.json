@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "description": "PhotoCull reusable test dataset — Phases 1-4",
+  "categories": [
+    {
+      "id": "exact-duplicates",
+      "description": "Two of three share identical image data; third is unique. Tests SHA-256 grouping and date-based keeper selection.",
+      "groupingReason": "exactDuplicate",
+      "assets": [
+        {
+          "id": "ed-oldest",
+          "creationDate": "2024-06-01T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "ed-shared",
+          "signals": { "sharpness": 0.80, "exposure": 0.70, "subjectQuality": 0.60, "resolution": 0.50 }
+        },
+        {
+          "id": "ed-newest",
+          "creationDate": "2024-06-01T12:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "ed-shared",
+          "signals": { "sharpness": 0.75, "exposure": 0.68, "subjectQuality": 0.58, "resolution": 0.50 }
+        },
+        {
+          "id": "ed-different",
+          "creationDate": "2024-06-01T11:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.70, "exposure": 0.65, "subjectQuality": 0.55, "resolution": 0.50 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/exact-duplicates.json"
+    },
+    {
+      "id": "near-duplicates",
+      "description": "Three photos of the same scene at increasing quality degradation, within 60 seconds. Tests composite score ranking.",
+      "groupingReason": "nearDuplicate",
+      "assets": [
+        {
+          "id": "nd-best",
+          "creationDate": "2024-07-01T14:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.90, "exposure": 0.85, "subjectQuality": 0.75, "resolution": 1.0 }
+        },
+        {
+          "id": "nd-mid",
+          "creationDate": "2024-07-01T14:00:30Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 8 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.60, "exposure": 0.70, "subjectQuality": 0.55, "resolution": 1.0 }
+        },
+        {
+          "id": "nd-worst",
+          "creationDate": "2024-07-01T14:00:50Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "solid",
+          "imageParams": { "r": 128, "g": 128, "b": 128 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.30, "exposure": 0.50, "subjectQuality": 0.30, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": [["nd-best","nd-mid"], ["nd-mid","nd-worst"], ["nd-best","nd-worst"]],
+      "expectedFile": "expected/near-duplicates.json"
+    },
+    {
+      "id": "burst",
+      "description": "Four photos sharing a burst identifier. One is clearly sharpest. Tests burst grouping and sharpness-based keeper.",
+      "groupingReason": "burst",
+      "assets": [
+        {
+          "id": "burst-1",
+          "creationDate": "2024-08-15T09:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": "burst-2024-08",
+          "imageType": "solid",
+          "imageParams": { "r": 100, "g": 100, "b": 100 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.40, "exposure": 0.65, "subjectQuality": 0.50, "resolution": 1.0 }
+        },
+        {
+          "id": "burst-2",
+          "creationDate": "2024-08-15T09:00:01Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": "burst-2024-08",
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.60, "exposure": 0.70, "subjectQuality": 0.55, "resolution": 1.0 }
+        },
+        {
+          "id": "burst-3",
+          "creationDate": "2024-08-15T09:00:02Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": "burst-2024-08",
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 2 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.95, "exposure": 0.82, "subjectQuality": 0.78, "resolution": 1.0 }
+        },
+        {
+          "id": "burst-4",
+          "creationDate": "2024-08-15T09:00:03Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": "burst-2024-08",
+          "imageType": "solid",
+          "imageParams": { "r": 80, "g": 80, "b": 80 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.35, "exposure": 0.60, "subjectQuality": 0.45, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/burst.json"
+    },
+    {
+      "id": "favorites",
+      "description": "Favorite photo vs. sharper non-favorite. Tests preservation Tier 0 override.",
+      "groupingReason": "exactDuplicate",
+      "assets": [
+        {
+          "id": "fav-favorite",
+          "creationDate": "2024-09-01T08:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": true, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "solid",
+          "imageParams": { "r": 128, "g": 128, "b": 128 },
+          "hashSeed": "fav-shared",
+          "signals": { "sharpness": 0.50, "exposure": 0.60, "subjectQuality": 0.55, "resolution": 1.0 }
+        },
+        {
+          "id": "fav-sharper",
+          "creationDate": "2024-09-01T09:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "fav-shared",
+          "signals": { "sharpness": 0.90, "exposure": 0.85, "subjectQuality": 0.80, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/favorites.json"
+    },
+    {
+      "id": "edited",
+      "description": "Edited photo vs. sharper non-edited non-favorite. Tests preservation Tier 1 override.",
+      "groupingReason": "exactDuplicate",
+      "assets": [
+        {
+          "id": "edit-edited",
+          "creationDate": "2024-09-05T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": true,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": "edit-shared",
+          "signals": { "sharpness": 0.50, "exposure": 0.65, "subjectQuality": 0.55, "resolution": 1.0 }
+        },
+        {
+          "id": "edit-sharper",
+          "creationDate": "2024-09-05T11:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "edit-shared",
+          "signals": { "sharpness": 0.90, "exposure": 0.85, "subjectQuality": 0.80, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/edited.json"
+    },
+    {
+      "id": "low-confidence-suppression",
+      "description": "Two near-equal quality photos. Confidence falls below threshold; both kept (Rule A suppression).",
+      "groupingReason": "exactDuplicate",
+      "assets": [
+        {
+          "id": "lcs-a",
+          "creationDate": "2024-10-01T08:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "lcs-shared",
+          "signals": { "sharpness": 0.70, "exposure": 0.70, "subjectQuality": 0.70, "resolution": 1.0 }
+        },
+        {
+          "id": "lcs-b",
+          "creationDate": "2024-10-01T09:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 5 },
+          "hashSeed": "lcs-shared",
+          "signals": { "sharpness": 0.72, "exposure": 0.69, "subjectQuality": 0.71, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/low-confidence-suppression.json"
+    },
+    {
+      "id": "missing-signal-suppression",
+      "description": "One asset has nil signals. Cull suppressed by Rule B; both kept.",
+      "groupingReason": "exactDuplicate",
+      "assets": [
+        {
+          "id": "mss-complete",
+          "creationDate": "2024-10-10T08:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": "mss-shared",
+          "signals": { "sharpness": 0.80, "exposure": 0.75, "subjectQuality": 0.70, "resolution": 1.0 }
+        },
+        {
+          "id": "mss-missing",
+          "creationDate": "2024-10-10T09:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "solid",
+          "imageParams": { "r": 128, "g": 128, "b": 128 },
+          "hashSeed": "mss-shared",
+          "signals": null
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/missing-signal-suppression.json"
+    },
+    {
+      "id": "unrelated-controls",
+      "description": "Three completely unrelated photos. No groups should be produced.",
+      "groupingReason": null,
+      "assets": [
+        {
+          "id": "ctrl-a",
+          "creationDate": "2024-11-01T08:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "solid",
+          "imageParams": { "r": 255, "g": 0, "b": 0 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.50, "exposure": 0.60, "subjectQuality": 0.55, "resolution": 1.0 }
+        },
+        {
+          "id": "ctrl-b",
+          "creationDate": "2024-11-02T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "gradient",
+          "imageParams": null,
+          "hashSeed": null,
+          "signals": { "sharpness": 0.60, "exposure": 0.65, "subjectQuality": 0.60, "resolution": 1.0 }
+        },
+        {
+          "id": "ctrl-c",
+          "creationDate": "2024-11-03T12:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 16 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.70, "exposure": 0.70, "subjectQuality": 0.65, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": null,
+      "expectedFile": "expected/unrelated-controls.json"
+    },
+    {
+      "id": "transitive-chain",
+      "description": "A≈B and B≈C but no direct A-C pair. Tests union-find transitivity produces one group of three.",
+      "groupingReason": "nearDuplicate",
+      "assets": [
+        {
+          "id": "tc-a",
+          "creationDate": "2024-12-01T10:00:00Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 2 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.90, "exposure": 0.80, "subjectQuality": 0.75, "resolution": 1.0 }
+        },
+        {
+          "id": "tc-b",
+          "creationDate": "2024-12-01T10:00:20Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 4 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.60, "exposure": 0.70, "subjectQuality": 0.60, "resolution": 1.0 }
+        },
+        {
+          "id": "tc-c",
+          "creationDate": "2024-12-01T10:00:40Z",
+          "pixelWidth": 64, "pixelHeight": 64,
+          "isFavorite": false, "isEdited": false,
+          "burstIdentifier": null,
+          "imageType": "checkerboard",
+          "imageParams": { "squareSize": 8 },
+          "hashSeed": null,
+          "signals": { "sharpness": 0.40, "exposure": 0.60, "subjectQuality": 0.45, "resolution": 1.0 }
+        }
+      ],
+      "nearDuplicatePairs": [["tc-a","tc-b"], ["tc-b","tc-c"]],
+      "expectedFile": "expected/transitive-chain.json"
+    }
+  ]
+}
