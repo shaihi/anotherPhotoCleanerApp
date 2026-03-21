@@ -1,2 +1,2 @@
-import SwiftUI
-PhotoCullApp.main()
+import PhotoCullAppLib
+PhotoCullSwiftApp.main()
