@@ -1,33 +1,42 @@
 import SwiftUI
 import PhotoCullCore
 
+enum ScanStatus: Equatable {
+    case idle
+    case scanning(ScanProgress?)
+    case done(ScanResult)
+    case failed(String)
+}
+
 @MainActor
 @Observable
 final class ScanViewModel {
-    var statusText: String = "Ready to scan."
-    var isScanning: Bool = false
+    var status: ScanStatus = .idle
 
     private var scanTask: Task<Void, Never>?
 
+    var isScanning: Bool {
+        if case .scanning = status { return true }
+        return false
+    }
+
     func startScan() {
         guard !isScanning else { return }
-        isScanning = true
-        statusText = "Starting scan…"
+        status = .scanning(nil)
 
         scanTask = Task {
-            defer { isScanning = false }
             let pipeline = ScanPipeline(libraryService: MockPhotoLibraryService())
             do {
                 for try await event in await pipeline.scan() {
                     switch event {
                     case .progress(let progress):
-                        statusText = progress.message
+                        status = .scanning(progress)
                     case .completed(let result):
-                        statusText = "Done. Found \(result.groups.count) duplicate group(s) in \(result.totalScanned) photo(s)."
+                        status = .done(result)
                     }
                 }
             } catch {
-                statusText = "Error: \(error.localizedDescription)"
+                status = .failed(error.localizedDescription)
             }
         }
     }
@@ -35,5 +44,10 @@ final class ScanViewModel {
     func cancelScan() {
         scanTask?.cancel()
         scanTask = nil
+        status = .idle
+    }
+
+    func resetScan() {
+        cancelScan()
     }
 }
