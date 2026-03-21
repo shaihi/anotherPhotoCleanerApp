@@ -204,7 +204,7 @@
     {
       "id": "low-confidence-suppression",
       "description": "Two near-equal quality photos. Confidence falls below threshold; both kept (Rule A suppression).",
-      "groupingReason": "exactDuplicate",
+      "groupingReason": "nearDuplicate",
       "assets": [
         {
           "id": "lcs-a",
@@ -214,7 +214,7 @@
           "burstIdentifier": null,
           "imageType": "checkerboard",
           "imageParams": { "squareSize": 4 },
-          "hashSeed": "lcs-shared",
+          "hashSeed": null,
           "signals": { "sharpness": 0.70, "exposure": 0.70, "subjectQuality": 0.70, "resolution": 1.0 }
         },
         {
@@ -225,11 +225,11 @@
           "burstIdentifier": null,
           "imageType": "checkerboard",
           "imageParams": { "squareSize": 5 },
-          "hashSeed": "lcs-shared",
+          "hashSeed": null,
           "signals": { "sharpness": 0.72, "exposure": 0.69, "subjectQuality": 0.71, "resolution": 1.0 }
         }
       ],
-      "nearDuplicatePairs": null,
+      "nearDuplicatePairs": [["lcs-a","lcs-b"]],
       "expectedFile": "expected/low-confidence-suppression.json"
     },
     {
