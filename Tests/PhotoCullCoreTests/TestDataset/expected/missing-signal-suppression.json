@@ -1,0 +1,10 @@
+{
+  "categoryId": "missing-signal-suppression",
+  "expectedGroups": [
+    { "reason": "exactDuplicate", "memberIds": ["mss-complete", "mss-missing"] }
+  ],
+  "expectedRecommendations": [
+    { "assetId": "mss-complete", "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": null },
+    { "assetId": "mss-missing",  "action": "keep", "minimumConfidence": null, "maximumConfidence": null, "mustContainReason": "Insufficient" }
+  ]
+}
