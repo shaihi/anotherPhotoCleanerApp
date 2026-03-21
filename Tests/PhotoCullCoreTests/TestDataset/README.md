@@ -127,3 +127,9 @@ Example comment:
 // hashResults sorted by asset.id ascending: ed-different < ed-newest < ed-oldest
 // ed-oldest and ed-newest share hashSeed "ed-shared" → same hash
 ```
+
+---
+
+## `synthesize()` vs `hashResults()` — Hash Equivalence
+
+**Important:** `TestDatasetLoader.synthesize()` generates image data using `TestImageFactory` based on `imageType`. The resulting `imageDataMap` values are NOT hash-equivalent for assets that share the same `hashSeed`. Hash equivalence is only modelled by `TestDatasetLoader.hashResults()`, which derives `cryptoHash` directly from the `hashSeed` string. Tests that require hash-collision behavior must use `hashResults()`, not `synthesize()`.
