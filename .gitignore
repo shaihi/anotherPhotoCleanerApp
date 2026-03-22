@@ -3,3 +3,6 @@ everything-claude-code/
 .swiftpm/
 *.o
 *.d
+image_dataset/
+.DS_Store
+*.png
