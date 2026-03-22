@@ -1,16 +1,22 @@
 {
   "categoryId": "blur-vs-sharp",
-  "note": "enableBlurDetection=true. bvs-sharp is keeper (sharpness 0.88). bvs-blurry has injected sharpness 0.04: absolute condition (0.04 < 0.10) and relative condition (0.04 < 0.88*0.50=0.44) both met, keeper reliable (0.88 >= 0.50). Rule C fires → bypasses Rule A → .cull with blur reason.",
-  "recommendations": [
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["bvs-sharp", "bvs-blurry"] }
+  ],
+  "expectedRecommendations": [
     {
       "assetId": "bvs-sharp",
       "action": "keep",
-      "mustContainReason": "best"
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
     },
     {
       "assetId": "bvs-blurry",
       "action": "cull",
-      "mustContainReason": "blur"
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
     }
   ]
 }
