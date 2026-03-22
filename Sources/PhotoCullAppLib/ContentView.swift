@@ -12,7 +12,7 @@ struct ContentView: View {
             ScanProgressView(progress: progress, onCancel: { scanViewModel.cancelScan() })
         case .done(let result):
             ReviewView(
-                reviewViewModel: ReviewViewModel(result: result),
+                reviewViewModel: ReviewViewModel(result: result, thumbnailProvider: MockThumbnailProvider()),
                 onReset: { scanViewModel.resetScan() }
             )
         case .failed(let message):

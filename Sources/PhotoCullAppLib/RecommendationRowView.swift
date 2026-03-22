@@ -5,6 +5,8 @@ struct RecommendationRowView: View {
     let asset: PhotoAsset
     let viewModel: ReviewViewModel
 
+    @State private var showingPreview = false
+
     var body: some View {
         let action = viewModel.effectiveAction(for: asset.id)
         let overridden = viewModel.isOverridden(for: asset.id)
@@ -16,7 +18,7 @@ struct RecommendationRowView: View {
                 .fill(accentColor(for: action))
                 .frame(width: 4)
 
-            // Thumbnail slot
+            // Thumbnail slot — tap to open full-size preview
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Color.primary.opacity(0.06))
@@ -34,7 +36,17 @@ struct RecommendationRowView: View {
                         .font(.title3)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { showingPreview = true }
+            .help("Click to preview")
             .task { await viewModel.loadThumbnail(for: asset.id) }
+            .sheet(isPresented: $showingPreview) {
+                ThumbnailPreviewSheet(
+                    assetId: asset.id,
+                    image: viewModel.cachedThumbnail(for: asset.id),
+                    onDismiss: { showingPreview = false }
+                )
+            }
 
             // Main content
             VStack(alignment: .leading, spacing: 4) {
@@ -149,5 +161,42 @@ struct RecommendationRowView: View {
 
     private func rowBackground(for action: CullAction) -> Color {
         (action == .keep ? Color.green : Color.orange).opacity(0.06)
+    }
+}
+
+// MARK: - Thumbnail preview sheet
+
+private struct ThumbnailPreviewSheet: View {
+    let assetId: String
+    let image: NSImage?
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 20) {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 480, maxHeight: 480)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.primary.opacity(0.06))
+                        .frame(width: 240, height: 240)
+                    Image(systemName: "photo")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(assetId)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Done") { onDismiss() }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(32)
+        .frame(minWidth: 360, minHeight: 300)
     }
 }
