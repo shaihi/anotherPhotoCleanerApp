@@ -16,8 +16,10 @@ final class ReviewViewModel {
     private let result: ScanResult
     private let thumbnailProvider: ThumbnailProvider
     private let service: (any PhotoLibraryServiceProtocol)?
+    private let decisionStore: (any ReviewDecisionStore)?
     private var overrides: [String: CullAction] = [:]
     private var thumbnailCache: [String: NSImage] = [:]
+    private var deletedAssetIds: Set<String> = []
 
     private(set) var blockedMessage: String? = nil
     private(set) var deleteState: DeleteState = .idle
@@ -25,25 +27,35 @@ final class ReviewViewModel {
     init(
         result: ScanResult,
         thumbnailProvider: ThumbnailProvider = NullThumbnailProvider(),
-        service: (any PhotoLibraryServiceProtocol)? = nil
+        service: (any PhotoLibraryServiceProtocol)? = nil,
+        decisionStore: (any ReviewDecisionStore)? = nil
     ) {
         self.result = result
         self.thumbnailProvider = thumbnailProvider
         self.service = service
+        self.decisionStore = decisionStore
     }
 
     // MARK: - Data access
 
     var groups: [CullGroup] {
-        result.groups
+        result.groups.compactMap { group in
+            let remaining = group.members.filter { !deletedAssetIds.contains($0.id) }
+            guard remaining.count > 1 else { return nil }
+            return try? CullGroup(reason: group.reason, members: remaining)
+        }
     }
 
     var keepCount: Int {
-        result.recommendations.filter { effectiveAction(for: $0.asset.id) == .keep }.count
+        result.recommendations.filter {
+            !deletedAssetIds.contains($0.asset.id) && effectiveAction(for: $0.asset.id) == .keep
+        }.count
     }
 
     var cullCount: Int {
-        result.recommendations.filter { effectiveAction(for: $0.asset.id) == .cull }.count
+        result.recommendations.filter {
+            !deletedAssetIds.contains($0.asset.id) && effectiveAction(for: $0.asset.id) == .cull
+        }.count
     }
 
     func recommendation(for assetId: String) -> CullRecommendation? {
@@ -115,6 +127,26 @@ final class ReviewViewModel {
         deleteState = .deleting
         do {
             try await service?.deleteAssets(ids: idsToDelete)
+
+            // Record decisions so future scans skip these assets.
+            if let store = decisionStore {
+                for id in idsToDelete {
+                    await store.record(assetId: id, decision: .deleted)
+                }
+                // Also record kept assets in the same groups so they are
+                // remembered as reviewed (prevents re-pairing with new arrivals
+                // from resurfacing the group unnecessarily).
+                let deletedSet = Set(idsToDelete)
+                let affectedGroupMembers = result.groups
+                    .filter { group in group.members.contains { deletedSet.contains($0.id) } }
+                    .flatMap { $0.members.map(\.id) }
+                for id in affectedGroupMembers where !deletedSet.contains(id) {
+                    await store.record(assetId: id, decision: .kept)
+                }
+            }
+
+            // Remove deleted rows from the UI immediately.
+            deletedAssetIds.formUnion(idsToDelete)
             deleteState = .done(idsToDelete.count)
             try? await Task.sleep(for: .seconds(2))
             deleteState = .idle

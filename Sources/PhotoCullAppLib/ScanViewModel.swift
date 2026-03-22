@@ -12,6 +12,7 @@ enum ScanStatus: Equatable {
 @Observable
 final class ScanViewModel {
     var status: ScanStatus = .idle
+    let decisionStore: UserDefaultsReviewDecisionStore = UserDefaultsReviewDecisionStore()
 
     private var scanTask: Task<Void, Never>?
 
@@ -24,6 +25,7 @@ final class ScanViewModel {
         guard !isScanning else { return }
         status = .scanning(nil)
 
+        let store = decisionStore
         scanTask = Task {
             var config = CullConfiguration.default
             config.enableNearDuplicates = true
@@ -32,7 +34,8 @@ final class ScanViewModel {
             let pipeline = ScanPipeline(
                 libraryService: service,
                 configuration: config,
-                analysisBackend: backend
+                analysisBackend: backend,
+                decisionStore: store
             )
             do {
                 for try await event in await pipeline.scan() {

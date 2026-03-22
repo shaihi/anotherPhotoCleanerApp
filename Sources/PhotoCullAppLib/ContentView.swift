@@ -16,7 +16,8 @@ struct ContentView: View {
                 reviewViewModel: ReviewViewModel(
                     result: result,
                     thumbnailProvider: ServiceBackedThumbnailProvider(service: mockService),
-                    service: mockService
+                    service: mockService,
+                    decisionStore: scanViewModel.decisionStore
                 ),
                 onReset: { scanViewModel.resetScan() }
             )

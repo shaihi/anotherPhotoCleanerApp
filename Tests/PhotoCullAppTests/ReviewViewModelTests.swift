@@ -345,4 +345,77 @@ final class ReviewViewModelTests: XCTestCase {
             XCTFail("Expected .failed, got \(vm.deleteState)")
         }
     }
+
+    // MARK: - Post-delete group filtering tests
+
+    // Test 23: deleted assets no longer appear in groups
+    func test_deletedAssets_removedFromGroups() async throws {
+        let group = try makeGroup(ids: ["a", "b", "c"])
+        let result = makeResult(
+            groups: [group],
+            recs: [
+                makeRec(id: "a", action: .keep),
+                makeRec(id: "b", action: .cull),
+                makeRec(id: "c", action: .cull)
+            ]
+        )
+        let service = RecordingMockService()
+        let vm = ReviewViewModel(result: result, service: service)
+        await vm.confirmDelete()
+        // After deletion, "b" and "c" are culled. Group needs ≥2 members to appear.
+        // Only "a" remains → group drops to 1 member → filtered out entirely.
+        XCTAssertEqual(vm.groups.count, 0)
+    }
+
+    // Test 24: groups with enough surviving members remain visible
+    func test_groupWithSurvivingMembers_remainsVisible() async throws {
+        let group = try makeGroup(ids: ["a", "b", "c"])
+        let result = makeResult(
+            groups: [group],
+            recs: [
+                makeRec(id: "a", action: .keep),
+                makeRec(id: "b", action: .keep),
+                makeRec(id: "c", action: .cull)
+            ]
+        )
+        let service = RecordingMockService()
+        // Override so only "c" gets culled
+        let vm = ReviewViewModel(result: result, service: service)
+        await vm.confirmDelete()
+        // "a" and "b" survive → group has 2 members → still shown
+        XCTAssertEqual(vm.groups.count, 1)
+        let remaining = vm.groups[0].members.map(\.id)
+        XCTAssertFalse(remaining.contains("c"))
+    }
+
+    // Test 25: cullCount drops to zero after deletion
+    func test_cullCount_zeroAfterDeletion() async throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let service = RecordingMockService()
+        let vm = ReviewViewModel(result: result, service: service)
+        XCTAssertEqual(vm.cullCount, 1)
+        await vm.confirmDelete()
+        XCTAssertEqual(vm.cullCount, 0)
+    }
+
+    // Test 26: decisions are recorded in the store after confirmDelete
+    func test_decisions_recordedInStore() async throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let service = RecordingMockService()
+        let store = InMemoryReviewDecisionStore()
+        let vm = ReviewViewModel(result: result, service: service, decisionStore: store)
+        await vm.confirmDelete()
+        let deletedDecision = await store.decision(for: "b")
+        let keptDecision = await store.decision(for: "a")
+        XCTAssertEqual(deletedDecision, .deleted)
+        XCTAssertEqual(keptDecision, .kept)
+    }
 }

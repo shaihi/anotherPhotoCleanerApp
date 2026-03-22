@@ -9,6 +9,7 @@ public actor ScanPipeline {
     private let explanationBuilder: ExplanationBuilder
     private let configuration: CullConfiguration
     private let analysisBackend: AnalysisBackendBundle?
+    private let decisionStore: (any ReviewDecisionStore)?
 
     public init(
         libraryService: some PhotoLibraryServiceProtocol,
@@ -18,7 +19,8 @@ public actor ScanPipeline {
         safetyGuard: SafetyGuard = SafetyGuard(),
         explanationBuilder: ExplanationBuilder = ExplanationBuilder(),
         configuration: CullConfiguration = .default,
-        analysisBackend: AnalysisBackendBundle? = nil
+        analysisBackend: AnalysisBackendBundle? = nil,
+        decisionStore: (any ReviewDecisionStore)? = nil
     ) {
         self.libraryService = libraryService
         self.hasher = hasher
@@ -28,6 +30,7 @@ public actor ScanPipeline {
         self.explanationBuilder = explanationBuilder
         self.configuration = configuration
         self.analysisBackend = analysisBackend
+        self.decisionStore = decisionStore
     }
 
     public func scan() -> AsyncThrowingStream<ScanEvent, Error> {
@@ -38,7 +41,21 @@ public actor ScanPipeline {
                     continuation.yield(.progress(ScanProgress(
                         phase: .fetchingAssets, processed: 0, total: 0, message: "Fetching photos..."
                     )))
-                    let assets = try await libraryService.fetchAssets()
+                    var assets = try await libraryService.fetchAssets()
+
+                    // 1b. Filter out assets the user has already reviewed.
+                    // - .deleted: asset is in the Trash — never surface again.
+                    // - .kept: user explicitly kept this asset in a prior session.
+                    //   We exclude kept assets only when *every* member of their
+                    //   previous group was reviewed (i.e. no new unseen partner).
+                    //   Simple conservative rule: skip .deleted assets entirely;
+                    //   leave .kept assets in so new arrivals can still pair with them.
+                    if let store = decisionStore {
+                        let allIds = assets.map(\.id)
+                        let known = await store.decisions(for: allIds)
+                        assets = assets.filter { known[$0.id] != .deleted }
+                    }
+
                     let total = assets.count
 
                     // 2. Load image data + hash each asset → HashResult
