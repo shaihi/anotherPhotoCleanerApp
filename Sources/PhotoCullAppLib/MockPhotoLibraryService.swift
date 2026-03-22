@@ -17,13 +17,17 @@ struct MockPhotoLibraryService: PhotoLibraryServiceProtocol {
         let now = Date()
         return [
             // Four near-duplicate variants — timestamps simulate a 3-second burst
-            PhotoAsset(id: "archery-orig",       creationDate: now.addingTimeInterval(-7200)),
-            PhotoAsset(id: "archery-compressed", creationDate: now.addingTimeInterval(-7199)),
-            PhotoAsset(id: "archery-dark",       creationDate: now.addingTimeInterval(-7198)),
-            PhotoAsset(id: "archery-sharp",      creationDate: now.addingTimeInterval(-7197)),
+            PhotoAsset(id: "archery-orig",       creationDate: now.addingTimeInterval(-7200), pixelWidth: 3024, pixelHeight: 4032),
+            PhotoAsset(id: "archery-compressed", creationDate: now.addingTimeInterval(-7199), pixelWidth: 3024, pixelHeight: 4032),
+            PhotoAsset(id: "archery-dark",       creationDate: now.addingTimeInterval(-7198), pixelWidth: 3024, pixelHeight: 4032),
+            PhotoAsset(id: "archery-sharp",      creationDate: now.addingTimeInterval(-7197), pixelWidth: 3024, pixelHeight: 4032),
             // Unique — clearly different scene, should not be grouped
-            PhotoAsset(id: "swimming-1",         creationDate: now.addingTimeInterval(-3600)),
+            PhotoAsset(id: "swimming-1",         creationDate: now.addingTimeInterval(-3600),  pixelWidth: 4032, pixelHeight: 3024),
         ]
+    }
+
+    func deleteAssets(ids: [String]) async throws {
+        // No-op: mock does not perform real deletion
     }
 
     func loadImageData(for asset: PhotoAsset) async throws -> Data {

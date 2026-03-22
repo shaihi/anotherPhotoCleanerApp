@@ -16,9 +16,15 @@ final class MockPhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sen
         self.defaultData = defaultData
     }
 
+    var deletedIds: [String] = []
+
     func fetchAssets() async throws -> [PhotoAsset] { assets }
 
     func loadImageData(for asset: PhotoAsset) async throws -> Data {
         imageDataMap[asset.id] ?? defaultData
+    }
+
+    func deleteAssets(ids: [String]) async throws {
+        deletedIds.append(contentsOf: ids)
     }
 }

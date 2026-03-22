@@ -2,6 +2,24 @@ import XCTest
 @testable import PhotoCullAppLib
 import PhotoCullCore
 
+// MARK: - Test-local mock services
+
+private final class RecordingMockService: PhotoLibraryServiceProtocol, @unchecked Sendable {
+    var deletedIds: [String] = []
+    func fetchAssets() async throws -> [PhotoAsset] { [] }
+    func loadImageData(for asset: PhotoAsset) async throws -> Data { Data() }
+    func deleteAssets(ids: [String]) async throws { deletedIds.append(contentsOf: ids) }
+}
+
+private final class ThrowingMockService: PhotoLibraryServiceProtocol, @unchecked Sendable {
+    struct DeleteError: Error, LocalizedError {
+        var errorDescription: String? { "Simulated delete failure" }
+    }
+    func fetchAssets() async throws -> [PhotoAsset] { [] }
+    func loadImageData(for asset: PhotoAsset) async throws -> Data { Data() }
+    func deleteAssets(ids: [String]) async throws { throw DeleteError() }
+}
+
 // MARK: - Test helpers
 
 private func makeAsset(id: String) -> PhotoAsset {
@@ -227,5 +245,104 @@ final class ReviewViewModelTests: XCTestCase {
         XCTAssertFalse(applied)
         XCTAssertNotNil(vm.blockedMessage)
         XCTAssertEqual(vm.effectiveAction(for: "a"), .keep)  // state unchanged
+    }
+
+    // MARK: - Delete flow tests
+
+    // Test 16: deleteState starts idle
+    func test_deleteState_startsIdle() throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let vm = ReviewViewModel(result: result)
+        XCTAssertEqual(vm.deleteState, .idle)
+    }
+
+    // Test 17: requestDelete transitions to confirming when cullCount > 0
+    func test_requestDelete_transitionsToConfirming() throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let vm = ReviewViewModel(result: result)
+        vm.requestDelete()
+        XCTAssertEqual(vm.deleteState, .confirming)
+    }
+
+    // Test 18: cancelDelete returns to idle
+    func test_cancelDelete_returnsToIdle() throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let vm = ReviewViewModel(result: result)
+        vm.requestDelete()
+        vm.cancelDelete()
+        XCTAssertEqual(vm.deleteState, .idle)
+    }
+
+    // Test 19: requestDelete does nothing when cullCount is zero
+    func test_requestDelete_doesNothing_whenCullCountIsZero() throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .keep)]
+        )
+        let vm = ReviewViewModel(result: result)
+        vm.requestDelete()
+        XCTAssertEqual(vm.deleteState, .idle)
+    }
+
+    // Test 20: confirmDelete calls service with correct cull ids
+    func test_confirmDelete_callsServiceWithCullIds() async throws {
+        let group = try makeGroup(ids: ["a", "b", "c"])
+        let result = makeResult(
+            groups: [group],
+            recs: [
+                makeRec(id: "a", action: .keep),
+                makeRec(id: "b", action: .cull),
+                makeRec(id: "c", action: .cull)
+            ]
+        )
+        let service = RecordingMockService()
+        let vm = ReviewViewModel(result: result, service: service)
+        await vm.confirmDelete()
+        XCTAssertEqual(Set(service.deletedIds), Set(["b", "c"]))
+    }
+
+    // Test 21: confirmDelete transitions to .done then .idle
+    func test_confirmDelete_transitionsThroughDone() async throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let service = RecordingMockService()
+        let vm = ReviewViewModel(result: result, service: service)
+        // Confirm delete — runs the 2-second sleep internally; we just verify state returns to idle
+        await vm.confirmDelete()
+        // After the async method returns (sleep completes), state should be .idle
+        XCTAssertEqual(vm.deleteState, .idle)
+    }
+
+    // Test 22: confirmDelete transitions to .failed on service error
+    func test_confirmDelete_transitionsToFailed_onServiceError() async throws {
+        let group = try makeGroup(ids: ["a", "b"])
+        let result = makeResult(
+            groups: [group],
+            recs: [makeRec(id: "a", action: .keep), makeRec(id: "b", action: .cull)]
+        )
+        let service = ThrowingMockService()
+        let vm = ReviewViewModel(result: result, service: service)
+        await vm.confirmDelete()
+        if case .failed(let msg) = vm.deleteState {
+            XCTAssertFalse(msg.isEmpty)
+        } else {
+            XCTFail("Expected .failed, got \(vm.deleteState)")
+        }
     }
 }

@@ -6,4 +6,5 @@ import Foundation
 public protocol PhotoLibraryServiceProtocol: Sendable {
     func fetchAssets() async throws -> [PhotoAsset]
     func loadImageData(for asset: PhotoAsset) async throws -> Data
+    func deleteAssets(ids: [String]) async throws
 }

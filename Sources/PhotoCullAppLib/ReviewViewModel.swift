@@ -2,19 +2,34 @@ import Foundation
 import AppKit
 import PhotoCullCore
 
+enum DeleteState: Equatable {
+    case idle
+    case confirming
+    case deleting
+    case done(Int)
+    case failed(String)
+}
+
 @MainActor
 @Observable
 final class ReviewViewModel {
     private let result: ScanResult
     private let thumbnailProvider: ThumbnailProvider
+    private let service: (any PhotoLibraryServiceProtocol)?
     private var overrides: [String: CullAction] = [:]
     private var thumbnailCache: [String: NSImage] = [:]
 
     private(set) var blockedMessage: String? = nil
+    private(set) var deleteState: DeleteState = .idle
 
-    init(result: ScanResult, thumbnailProvider: ThumbnailProvider = NullThumbnailProvider()) {
+    init(
+        result: ScanResult,
+        thumbnailProvider: ThumbnailProvider = NullThumbnailProvider(),
+        service: (any PhotoLibraryServiceProtocol)? = nil
+    ) {
         self.result = result
         self.thumbnailProvider = thumbnailProvider
+        self.service = service
     }
 
     // MARK: - Data access
@@ -76,6 +91,36 @@ final class ReviewViewModel {
 
     func clearBlockedMessage() {
         blockedMessage = nil
+    }
+
+    // MARK: - Delete flow
+
+    func requestDelete() {
+        guard cullCount > 0 else { return }
+        deleteState = .confirming
+    }
+
+    func cancelDelete() {
+        deleteState = .idle
+    }
+
+    func confirmDelete() async {
+        let idsToDelete = result.recommendations
+            .filter { effectiveAction(for: $0.asset.id) == .cull }
+            .map { $0.asset.id }
+        guard !idsToDelete.isEmpty else {
+            deleteState = .idle
+            return
+        }
+        deleteState = .deleting
+        do {
+            try await service?.deleteAssets(ids: idsToDelete)
+            deleteState = .done(idsToDelete.count)
+            try? await Task.sleep(for: .seconds(2))
+            deleteState = .idle
+        } catch {
+            deleteState = .failed(error.localizedDescription)
+        }
     }
 
     // MARK: - Thumbnails

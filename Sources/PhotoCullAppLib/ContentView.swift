@@ -11,8 +11,13 @@ struct ContentView: View {
         case .scanning(let progress):
             ScanProgressView(progress: progress, onCancel: { scanViewModel.cancelScan() })
         case .done(let result):
+            let mockService = MockPhotoLibraryService()
             ReviewView(
-                reviewViewModel: ReviewViewModel(result: result, thumbnailProvider: ServiceBackedThumbnailProvider(service: MockPhotoLibraryService())),
+                reviewViewModel: ReviewViewModel(
+                    result: result,
+                    thumbnailProvider: ServiceBackedThumbnailProvider(service: mockService),
+                    service: mockService
+                ),
                 onReset: { scanViewModel.resetScan() }
             )
         case .failed(let message):
