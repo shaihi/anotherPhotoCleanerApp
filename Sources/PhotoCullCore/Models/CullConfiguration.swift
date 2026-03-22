@@ -24,6 +24,14 @@ public struct CullConfiguration: Sendable, Equatable {
 
     /// Minimum confidence required to emit a `.cull` recommendation; lower → `.keep`.
     public var confidenceThreshold: Double = 0.60
+    /// Weight for the sharpness signal in the composite score.
+    public var sharpnessWeight: Double = 0.40
+    /// Weight for the exposure signal in the composite score.
+    public var exposureWeight: Double = 0.25
+    /// Weight for the subject-quality signal in the composite score.
+    public var subjectWeight: Double = 0.25
+    /// Weight for the resolution signal in the composite score.
+    public var resolutionWeight: Double = 0.10
 
     // MARK: - Phase 5 blur detection parameters
 
@@ -40,14 +48,6 @@ public struct CullConfiguration: Sendable, Equatable {
     /// meaningful. If the keeper's sharpness is below this value, Rule C emits `.unclear`
     /// regardless of the candidate's score.
     public var blurKeeperSharpnessMinimum: Double = 0.50
-    /// Weight for the sharpness signal in the composite score.
-    public var sharpnessWeight: Double = 0.40
-    /// Weight for the exposure signal in the composite score.
-    public var exposureWeight: Double = 0.25
-    /// Weight for the subject-quality signal in the composite score.
-    public var subjectWeight: Double = 0.25
-    /// Weight for the resolution signal in the composite score.
-    public var resolutionWeight: Double = 0.10
 
     public init(
         enableExactDuplicates: Bool = true,

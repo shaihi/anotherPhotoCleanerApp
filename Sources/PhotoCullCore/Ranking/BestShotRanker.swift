@@ -150,6 +150,11 @@ public struct BestShotRanker: Sendable {
                         ))
                         continue
                     }
+                    // .unclear and .preserved both fall through to Rule A.
+                    // .preserved is unreachable in practice: Tier 0/1 assets (isFavorite/isEdited)
+                    // are sorted to sorted[0] (keeper) in Pass 1 and never enter this loop.
+                    // If a group ever had two Tier-0 assets, conservative fallthrough to Rule A is
+                    // the correct behavior — Rule C does not override preservation semantics.
                 }
 
                 // Rule A: confidence suppression

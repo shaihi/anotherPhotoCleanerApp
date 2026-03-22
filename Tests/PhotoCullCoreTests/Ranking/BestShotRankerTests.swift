@@ -345,13 +345,16 @@ final class BestShotRankerTests: XCTestCase {
         return config
     }
 
-    // Test 7: Rule C culls blurry photo when keeper is sharp (bypasses Rule A)
+    // Test 7: Rule C culls blurry photo when keeper is sharp
     func testBlurDetection_cullsBlurryPhotoWhenKeeperIsSharp() throws {
         let sharp = asset(id: "sharp")
         let blurry = asset(id: "blurry")
         let group = try makeGroup(members: [sharp, blurry])
-        // Equal non-sharpness signals → composite scores differ only via sharpness weight
-        // → Rule A would suppress if blur detection were off (verified in test 10)
+        // Equal non-sharpness signals → composite scores differ only via sharpness weight.
+        // With separationScale=0.3 and sharpnessWeight=0.40, the score delta (≥0.184) exceeds
+        // Rule A's 0.60 confidence threshold, so Rule C does not rescue a cull Rule A would block.
+        // Rule C's role here is adding the blur reason string and short-circuiting the confidence
+        // calculation — the cull would also happen via composite scoring (verified in test 10).
         let features: [String: AssetFeatures] = [
             "sharp":  fullFeatures(assetId: "sharp",  sharpness: 0.88, exposure: 0.70, subject: 0.68),
             "blurry": fullFeatures(assetId: "blurry", sharpness: 0.04, exposure: 0.70, subject: 0.68)
