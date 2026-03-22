@@ -3,31 +3,31 @@ import PhotoCullCore
 
 /// Synthetic photo library for the app shell.
 ///
-/// Uses real sport photos bundled in MockImages/ to simulate a near-duplicate scenario:
-/// - archery-1 + archery-2: two shots of the same archery scene (near-duplicate pair)
-/// - billiards-1 + billiards-2: two shots of the same billiards scene (near-duplicate pair)
-/// - swimming-1: clearly different scene (unique, no pair)
+/// Uses four variants of the same archery photo to simulate a near-duplicate burst group:
+/// - archery-orig:       original JPEG at 100% quality
+/// - archery-compressed: same pixels, re-encoded at 90% JPEG quality
+/// - archery-dark:       brightness reduced by 10% (simulates exposure variation)
+/// - archery-sharp:      one pass of unsharp mask (simulates in-camera sharpening)
 ///
-/// All assets have unique bytes — duplicates are detected by visual similarity (near-duplicate
-/// pipeline), not by SHA hash, matching how burst photos behave in a real photo library.
+/// All four have different bytes but identical visual content → near-duplicate detection
+/// should group them, exactly as it would for real burst or HDR-bracket photos.
+/// swimming-1 is a clearly different scene with no pair.
 struct MockPhotoLibraryService: PhotoLibraryServiceProtocol {
     func fetchAssets() async throws -> [PhotoAsset] {
         let now = Date()
         return [
-            // Archery near-duplicate pair — 3 seconds apart, simulating burst
-            PhotoAsset(id: "archery-1", creationDate: now.addingTimeInterval(-7200)),
-            PhotoAsset(id: "archery-2", creationDate: now.addingTimeInterval(-7197)),
-            // Unique photo — clearly different scene
-            PhotoAsset(id: "swimming-1", creationDate: now.addingTimeInterval(-3600)),
-            // Billiards near-duplicate pair — 2 seconds apart, simulating burst
-            PhotoAsset(id: "billiards-1", creationDate: now.addingTimeInterval(-1800)),
-            PhotoAsset(id: "billiards-2", creationDate: now.addingTimeInterval(-1798)),
+            // Four near-duplicate variants — timestamps simulate a 3-second burst
+            PhotoAsset(id: "archery-orig",       creationDate: now.addingTimeInterval(-7200)),
+            PhotoAsset(id: "archery-compressed", creationDate: now.addingTimeInterval(-7199)),
+            PhotoAsset(id: "archery-dark",       creationDate: now.addingTimeInterval(-7198)),
+            PhotoAsset(id: "archery-sharp",      creationDate: now.addingTimeInterval(-7197)),
+            // Unique — clearly different scene, should not be grouped
+            PhotoAsset(id: "swimming-1",         creationDate: now.addingTimeInterval(-3600)),
         ]
     }
 
     func loadImageData(for asset: PhotoAsset) async throws -> Data {
-        let filename = asset.id  // e.g. "archery-1" → "archery-1.jpg"
-        guard let url = Bundle.module.url(forResource: filename, withExtension: "jpg",
+        guard let url = Bundle.module.url(forResource: asset.id, withExtension: "jpg",
                                           subdirectory: "MockImages") else {
             throw MockServiceError.imageNotFound(asset.id)
         }
