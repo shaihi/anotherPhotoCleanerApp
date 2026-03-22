@@ -14,7 +14,8 @@ let package = Package(
         .target(
             name: "PhotoCullAppLib",
             dependencies: ["PhotoCullCore"],
-            path: "Sources/PhotoCullAppLib"
+            path: "Sources/PhotoCullAppLib",
+            resources: [.copy("MockImages")]
         ),
         .executableTarget(
             name: "PhotoCullApp",

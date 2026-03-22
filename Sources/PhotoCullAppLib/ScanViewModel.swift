@@ -25,7 +25,15 @@ final class ScanViewModel {
         status = .scanning(nil)
 
         scanTask = Task {
-            let pipeline = ScanPipeline(libraryService: MockPhotoLibraryService())
+            var config = CullConfiguration.default
+            config.enableNearDuplicates = true
+            let service = MockPhotoLibraryService()
+            let backend = AnalysisBackend.makeDefault(dataLoader: service.loadImageData(for:))
+            let pipeline = ScanPipeline(
+                libraryService: service,
+                configuration: config,
+                analysisBackend: backend
+            )
             do {
                 for try await event in await pipeline.scan() {
                     switch event {
