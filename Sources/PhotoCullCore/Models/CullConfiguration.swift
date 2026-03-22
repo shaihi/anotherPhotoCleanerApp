@@ -4,7 +4,7 @@ public struct CullConfiguration: Sendable, Equatable {
     public var enableExactDuplicates: Bool
     public var enableNearDuplicates: Bool   // Phase 2, default false
     public var enableBurstGrouping: Bool    // Phase 3, default false
-    public var enableBlurDetection: Bool    // Phase 3, default false
+    public var enableBlurDetection: Bool    // Phase 5, default false
 
     // MARK: - Phase 3 similarity parameters
 
@@ -32,6 +32,22 @@ public struct CullConfiguration: Sendable, Equatable {
     public var subjectWeight: Double = 0.25
     /// Weight for the resolution signal in the composite score.
     public var resolutionWeight: Double = 0.10
+
+    // MARK: - Phase 5 blur detection parameters
+
+    /// Absolute sharpness threshold below which a photo may be classified as accidentally blurry.
+    /// Corresponds to a Laplacian-variance normalized score; values below ~0.10 represent
+    /// near-uniform images consistent with camera shake or missed focus.
+    /// Only evaluated when `enableBlurDetection` is true.
+    public var accidentalBlurThreshold: Double = 0.10
+    /// Relative factor: candidate must have sharpness < keeperSharpness × factor to meet
+    /// the relative condition for accidental blur. Both absolute and relative conditions
+    /// must be true for a `.accidental` classification.
+    public var blurRelativeFactor: Double = 0.50
+    /// Minimum sharpness the keeper must have for a within-group blur comparison to be
+    /// meaningful. If the keeper's sharpness is below this value, Rule C emits `.unclear`
+    /// regardless of the candidate's score.
+    public var blurKeeperSharpnessMinimum: Double = 0.50
 
     public init(
         enableExactDuplicates: Bool = true,

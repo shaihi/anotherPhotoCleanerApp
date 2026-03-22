@@ -1,0 +1,22 @@
+{
+  "categoryId": "blur-vs-sharp",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["bvs-sharp", "bvs-blurry"] }
+  ],
+  "expectedRecommendations": [
+    {
+      "assetId": "bvs-sharp",
+      "action": "keep",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
+    },
+    {
+      "assetId": "bvs-blurry",
+      "action": "cull",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "categoryId": "blur-favorite-preserved",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["bfp-blurry-fav", "bfp-sharp"] }
+  ],
+  "expectedRecommendations": [
+    {
+      "assetId": "bfp-blurry-fav",
+      "action": "keep",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": "favorit"
+    },
+    {
+      "assetId": "bfp-sharp",
+      "action": "keep",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
+    }
+  ]
+}

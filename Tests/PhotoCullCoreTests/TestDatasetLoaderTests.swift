@@ -9,7 +9,7 @@ final class TestDatasetLoaderTests: XCTestCase {
     func testManifestLoadsSuccessfully() throws {
         let manifest = try TestDatasetLoader.loadManifest()
         XCTAssertEqual(manifest.version, 1)
-        XCTAssertEqual(manifest.categories.count, 9)
+        XCTAssertEqual(manifest.categories.count, 12)
     }
 
     // MARK: - 2. All categories have unique IDs
@@ -44,7 +44,10 @@ final class TestDatasetLoaderTests: XCTestCase {
             "low-confidence-suppression": 2,
             "missing-signal-suppression": 2,
             "unrelated-controls": 3,
-            "transitive-chain": 3
+            "transitive-chain": 3,
+            "blur-vs-sharp": 2,
+            "blur-favorite-preserved": 2,
+            "blur-both-blurry": 2
         ]
         let manifest = try TestDatasetLoader.loadManifest()
         for category in manifest.categories {

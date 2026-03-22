@@ -333,4 +333,107 @@ final class BestShotRankerTests: XCTestCase {
         // Lexicographically smallest id wins: "a" < "b"
         XCTAssertEqual(keeper?.asset.id, "a", "Lexicographically smallest id should win final tie-break")
     }
+
+    // MARK: - Phase 5: Rule C (accidental blur) integration
+    // All sharpness values are injected synthetic values built directly into
+    // AssetFeatures — no Metal/Vision/Accelerate computation runs in these tests.
+
+    private func blurConfig(enabled: Bool) -> CullConfiguration {
+        var config = CullConfiguration.default
+        config.enableNearDuplicates = true
+        config.enableBlurDetection = enabled
+        return config
+    }
+
+    // Test 7: Rule C culls blurry photo when keeper is sharp
+    func testBlurDetection_cullsBlurryPhotoWhenKeeperIsSharp() throws {
+        let sharp = asset(id: "sharp")
+        let blurry = asset(id: "blurry")
+        let group = try makeGroup(members: [sharp, blurry])
+        // Equal non-sharpness signals → composite scores differ only via sharpness weight.
+        // With separationScale=0.3 and sharpnessWeight=0.40, the score delta (≥0.184) exceeds
+        // Rule A's 0.60 confidence threshold, so Rule C does not rescue a cull Rule A would block.
+        // Rule C's role here is adding the blur reason string and short-circuiting the confidence
+        // calculation — the cull would also happen via composite scoring (verified in test 10).
+        let features: [String: AssetFeatures] = [
+            "sharp":  fullFeatures(assetId: "sharp",  sharpness: 0.88, exposure: 0.70, subject: 0.68),
+            "blurry": fullFeatures(assetId: "blurry", sharpness: 0.04, exposure: 0.70, subject: 0.68)
+        ]
+        let pair = confirmedPair(a: "sharp", b: "blurry", score: 0.05)
+        let recs = ranker.rank(
+            group: group, features: features, pairs: [pair],
+            assets: assetMap([sharp, blurry]), configuration: blurConfig(enabled: true)
+        )
+        let blurryRec = recs.first { $0.asset.id == "blurry" }
+        XCTAssertEqual(blurryRec?.action, .cull, "Rule C should cull the blurry photo")
+        XCTAssertTrue(
+            blurryRec?.reasons.first?.lowercased().contains("blur") == true,
+            "Cull reason should mention blur; got: \(blurryRec?.reasons ?? [])"
+        )
+    }
+
+    // Test 8: Both blurry — keeper fails blurKeeperSharpnessMinimum → .unclear → Rule A suppresses both
+    func testBlurDetection_suppressesWhenBothBlurry() throws {
+        let blurryA = asset(id: "blurry-a")
+        let blurryB = asset(id: "blurry-b")
+        let group = try makeGroup(members: [blurryA, blurryB])
+        // keeper sharpness 0.05 < blurKeeperSharpnessMinimum 0.50 → Rule C .unclear
+        let features: [String: AssetFeatures] = [
+            "blurry-a": fullFeatures(assetId: "blurry-a", sharpness: 0.05, exposure: 0.68, subject: 0.62),
+            "blurry-b": fullFeatures(assetId: "blurry-b", sharpness: 0.03, exposure: 0.65, subject: 0.60)
+        ]
+        let pair = confirmedPair(a: "blurry-a", b: "blurry-b", score: 0.05)
+        let recs = ranker.rank(
+            group: group, features: features, pairs: [pair],
+            assets: assetMap([blurryA, blurryB]), configuration: blurConfig(enabled: true)
+        )
+        XCTAssertTrue(recs.allSatisfy { $0.action == .keep },
+            "Both blurry photos should be kept when keeper fails blurKeeperSharpnessMinimum")
+    }
+
+    // Test 9: Blurry isFavorite → Tier 0 keeper → Rule C never reached for the favorite
+    func testBlurDetection_preservesFavoriteBlurry() throws {
+        let blurryFav = asset(id: "blurry-fav", isFavorite: true)
+        let sharp = asset(id: "sharp")
+        let group = try makeGroup(members: [blurryFav, sharp])
+        let features: [String: AssetFeatures] = [
+            "blurry-fav": fullFeatures(assetId: "blurry-fav", sharpness: 0.04, exposure: 0.70, subject: 0.65),
+            "sharp":      fullFeatures(assetId: "sharp",      sharpness: 0.88, exposure: 0.72, subject: 0.68)
+        ]
+        let pair = confirmedPair(a: "blurry-fav", b: "sharp", score: 0.05)
+        let recs = ranker.rank(
+            group: group, features: features, pairs: [pair],
+            assets: assetMap([blurryFav, sharp]), configuration: blurConfig(enabled: true)
+        )
+        let favRec = recs.first { $0.asset.id == "blurry-fav" }
+        XCTAssertEqual(favRec?.action, .keep, "isFavorite must always be kept regardless of blur")
+    }
+
+    // Test 10: enableBlurDetection=false → Rule C skipped → blurry still culled by composite
+    // scoring, but the cull reason must NOT mention "blur" (Rule C is the only source of that string).
+    // Note: with separationScale=0.3 and sharpnessWeight=0.40, any blur-detectable sharpness
+    // difference (≥0.46) always exceeds the Rule A suppression threshold; the photo is culled
+    // by composite ranking regardless. What changes is whether the blur reason string is present.
+    func testBlurDetection_disabled_noBluReasonInCullRecommendation() throws {
+        let sharp = asset(id: "sharp")
+        let blurry = asset(id: "blurry")
+        let group = try makeGroup(members: [sharp, blurry])
+        let features: [String: AssetFeatures] = [
+            "sharp":  fullFeatures(assetId: "sharp",  sharpness: 0.88, exposure: 0.70, subject: 0.68),
+            "blurry": fullFeatures(assetId: "blurry", sharpness: 0.04, exposure: 0.70, subject: 0.68)
+        ]
+        let pair = confirmedPair(a: "sharp", b: "blurry", score: 0.05)
+        let recs = ranker.rank(
+            group: group, features: features, pairs: [pair],
+            assets: assetMap([sharp, blurry]), configuration: blurConfig(enabled: false)
+        )
+        let blurryRec = recs.first { $0.asset.id == "blurry" }
+        // Composite scoring culls the blurry photo regardless — blur detection is not needed here.
+        XCTAssertEqual(blurryRec?.action, .cull,
+            "Blurry photo should be culled by composite scoring even without blur detection")
+        // The blur reason string must NOT appear when Rule C is disabled.
+        let allReasons = blurryRec?.reasons.joined() ?? ""
+        XCTAssertFalse(allReasons.lowercased().contains("blur"),
+            "Blur reason must not appear when enableBlurDetection=false; got: \(allReasons)")
+    }
 }

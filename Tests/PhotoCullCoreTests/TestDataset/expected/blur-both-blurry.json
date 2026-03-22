@@ -1,0 +1,22 @@
+{
+  "categoryId": "blur-both-blurry",
+  "expectedGroups": [
+    { "reason": "nearDuplicate", "memberIds": ["bbb-blurry-a", "bbb-blurry-b"] }
+  ],
+  "expectedRecommendations": [
+    {
+      "assetId": "bbb-blurry-a",
+      "action": "keep",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": null
+    },
+    {
+      "assetId": "bbb-blurry-b",
+      "action": "keep",
+      "minimumConfidence": null,
+      "maximumConfidence": null,
+      "mustContainReason": "close"
+    }
+  ]
+}

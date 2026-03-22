@@ -73,4 +73,26 @@ final class ExplanationBuilderTests: XCTestCase {
         XCTAssertTrue(text.contains("0.90"), "Cull explanation must contain real keeper value 0.90; got: \(text)")
         XCTAssertFalse(text.contains("0.50"), "Cull explanation must not use approximated keeper value 0.50; got: \(text)")
     }
+
+    // Test 11: Blur reason set by BestShotRanker is preserved through explain()
+    // Uses the existing pass-through guard (if !recommendation.reasons.isEmpty { return recommendation.reasons })
+    // to verify blur reasons survive ExplanationBuilder without modification.
+    // No sharpness computation — reason string is injected directly into CullRecommendation.
+    func testBlurReasonPreservedThroughExplain() throws {
+        let nearDupGroup = try CullGroup(
+            reason: .nearDuplicate,
+            members: [PhotoAsset(id: "a"), PhotoAsset(id: "b")]
+        )
+        let blurReason = "Suggested for removal: likely accidental blur (sharpness 0.04 vs keeper 0.88)."
+        let rec = CullRecommendation(
+            asset: nearDupGroup.members[1],
+            action: .cull,
+            reasons: [blurReason],
+            confidence: 0.80,
+            signalBreakdown: ["sharpness": 0.04, "exposure": 0.70]
+        )
+        let explained = builder.explain(recommendation: rec, in: nearDupGroup)
+        XCTAssertEqual(explained.reasons, [blurReason],
+            "ExplanationBuilder must preserve blur reasons written by BestShotRanker; got: \(explained.reasons)")
+    }
 }
