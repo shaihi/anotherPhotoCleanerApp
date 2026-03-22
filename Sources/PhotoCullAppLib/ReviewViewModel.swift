@@ -47,6 +47,10 @@ final class ReviewViewModel {
         recommendation(for: assetId)?.signalBreakdown
     }
 
+    func qualityScore(for assetId: String) -> Double? {
+        recommendation(for: assetId)?.qualityScore
+    }
+
     // MARK: - Overrides
 
     /// Attempts to apply an override. Returns `false` and sets `blockedMessage`

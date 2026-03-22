@@ -311,8 +311,8 @@ final class BestShotRankerTests: XCTestCase {
             assets: assetMap(members), configuration: makeConfig()
         )
         let keeper = recs.first(where: { $0.action == .keep })
-        // b has a later date → should be preferred
-        XCTAssertEqual(keeper?.asset.id, "b", "Newer creation date should win tie-break")
+        // a has the earlier date → preferred (first burst shot = original is kept)
+        XCTAssertEqual(keeper?.asset.id, "a", "Earlier creation date should win tie-break (first burst shot preferred)")
     }
 
     func testTieBreakByIdWhenDatesEqual() throws {

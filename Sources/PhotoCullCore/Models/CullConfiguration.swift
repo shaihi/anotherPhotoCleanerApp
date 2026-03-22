@@ -24,6 +24,11 @@ public struct CullConfiguration: Sendable, Equatable {
 
     /// Minimum confidence required to emit a `.cull` recommendation; lower → `.keep`.
     public var confidenceThreshold: Double = 0.60
+    /// Composite score proximity band for the within-tier date tiebreaker.
+    /// When two assets' scores differ by less than this value they are treated as
+    /// effectively equal and the earlier creation date wins (first shot of a burst
+    /// is preferred). Set to 0.0 to disable and always use exact score ordering.
+    public var scoreBandWidth: Double = 0.02
     /// Weight for the sharpness signal in the composite score.
     public var sharpnessWeight: Double = 0.40
     /// Weight for the exposure signal in the composite score.

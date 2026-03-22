@@ -21,7 +21,9 @@ public struct ExplanationBuilder: Sendable {
             action: recommendation.action,
             reasons: reasons,
             confidence: recommendation.confidence,
-            isOverriddenByUser: recommendation.isOverriddenByUser
+            isOverriddenByUser: recommendation.isOverriddenByUser,
+            signalBreakdown: recommendation.signalBreakdown,
+            qualityScore: recommendation.qualityScore
         )
     }
 

@@ -54,13 +54,24 @@ struct RecommendationRowView: View {
                     // Keep / cull badge
                     actionBadge(action: action, overridden: overridden)
 
+                    if let quality = viewModel.qualityScore(for: asset.id) {
+                        Label(String(format: "%.0f%%", quality * 100), systemImage: "star.fill")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.primary.opacity(0.08), in: Capsule())
+                            .help("Quality score: weighted composite of sharpness, exposure, subject, and resolution")
+                    }
+
                     if let confidence = rec?.confidence {
-                        Text(String(format: "%.0f%%", confidence * 100))
+                        Label(String(format: "%.0f%%", confidence * 100), systemImage: "checkmark.seal")
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(Color.primary.opacity(0.06), in: Capsule())
+                            .help("Recommendation confidence: how certain the app is about this decision")
                     }
 
                     Spacer()

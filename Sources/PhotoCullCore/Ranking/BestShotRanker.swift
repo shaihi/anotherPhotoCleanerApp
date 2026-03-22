@@ -62,19 +62,17 @@ public struct BestShotRanker: Sendable {
             let tierA = preservationTier(for: a)
             let tierB = preservationTier(for: b)
             if tierA != tierB { return tierA < tierB }
-            // Within tier: composite score DESC
+            // Within tier: composite score DESC, with proximity band.
+            // When scores are within scoreBandWidth they are treated as equal and the
+            // earlier creation date wins — the first burst shot (original) is preferred.
             let scoreA = compositeScores[a.id] ?? 0.0
             let scoreB = compositeScores[b.id] ?? 0.0
-            if scoreA != scoreB { return scoreA > scoreB }
-            // Tiebreaker 1: sharpness DESC
-            let sharpA = features[a.id]?.sharpnessScore.value ?? 0.0
-            let sharpB = features[b.id]?.sharpnessScore.value ?? 0.0
-            if sharpA != sharpB { return sharpA > sharpB }
-            // Tiebreaker 2: newest creation date DESC
-            let dateA = a.creationDate ?? .distantPast
-            let dateB = b.creationDate ?? .distantPast
-            if dateA != dateB { return dateA > dateB }
-            // Tiebreaker 3: lexicographic id ASC (deterministic)
+            if abs(scoreA - scoreB) >= configuration.scoreBandWidth { return scoreA > scoreB }
+            // Tiebreaker: earliest creation date ASC (first shot of burst = original).
+            let dateA = a.creationDate ?? .distantFuture
+            let dateB = b.creationDate ?? .distantFuture
+            if dateA != dateB { return dateA < dateB }
+            // Final deterministic tiebreaker: lexicographic id ASC.
             return a.id < b.id
         }
 
@@ -106,7 +104,8 @@ public struct BestShotRanker: Sendable {
                     action: .keep,
                     reasons: [],
                     confidence: keeperConfidence,
-                    signalBreakdown: keeperBreakdown
+                    signalBreakdown: keeperBreakdown,
+                    qualityScore: keeperScore
                 ))
             } else {
                 // Potential cull — check suppression rules.
@@ -123,7 +122,8 @@ public struct BestShotRanker: Sendable {
                         action: .keep,
                         reasons: ["Insufficient quality data to recommend deletion."],
                         confidence: keeperConfidence,
-                        signalBreakdown: assetBreakdown
+                        signalBreakdown: assetBreakdown,
+                        qualityScore: assetScore
                     ))
                     continue
                 }
@@ -146,7 +146,8 @@ public struct BestShotRanker: Sendable {
                             action: .cull,
                             reasons: ["Suggested for removal: likely accidental blur (sharpness \(String(format: "%.2f", candidateSharpness)) vs keeper \(String(format: "%.2f", keeperSharpness)))."],
                             confidence: cullConfidence,
-                            signalBreakdown: assetBreakdown
+                            signalBreakdown: assetBreakdown,
+                            qualityScore: assetScore
                         ))
                         continue
                     }
@@ -172,7 +173,8 @@ public struct BestShotRanker: Sendable {
                         action: .keep,
                         reasons: ["Scores too close to recommend deletion."],
                         confidence: recommendationConfidence,
-                        signalBreakdown: assetBreakdown
+                        signalBreakdown: assetBreakdown,
+                        qualityScore: assetScore
                     ))
                     continue
                 }
@@ -182,7 +184,8 @@ public struct BestShotRanker: Sendable {
                     action: .cull,
                     reasons: [],
                     confidence: cullConfidence,
-                    signalBreakdown: assetBreakdown
+                    signalBreakdown: assetBreakdown,
+                    qualityScore: assetScore
                 ))
             }
         }

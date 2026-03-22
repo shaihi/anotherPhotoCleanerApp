@@ -13,6 +13,9 @@ public struct CullRecommendation: Sendable, Equatable {
     public let isOverriddenByUser: Bool
     /// Phase 4: per-signal score breakdown keyed by `QualitySignal.rawValue`. Nil for Phase 1–3 paths.
     public var signalBreakdown: [String: Double]?
+    /// Phase 4: weighted composite quality score for this asset in [0, 1].
+    /// Distinct from `confidence` (which reflects certainty of the recommendation).
+    public var qualityScore: Double?
 
     public init(
         asset: PhotoAsset,
@@ -20,7 +23,8 @@ public struct CullRecommendation: Sendable, Equatable {
         reasons: [String],
         confidence: Double,
         isOverriddenByUser: Bool = false,
-        signalBreakdown: [String: Double]? = nil
+        signalBreakdown: [String: Double]? = nil,
+        qualityScore: Double? = nil
     ) {
         self.asset = asset
         self.action = action
@@ -28,5 +32,6 @@ public struct CullRecommendation: Sendable, Equatable {
         self.confidence = confidence
         self.isOverriddenByUser = isOverriddenByUser
         self.signalBreakdown = signalBreakdown
+        self.qualityScore = qualityScore
     }
 }
